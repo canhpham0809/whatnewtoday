@@ -1,0 +1,148 @@
+import * as http from "http";
+import * as fs from "fs";
+import * as path from "path";
+import { logger } from "../../utils/logger";
+import { PipelineTracker } from "../../utils/pipelineTracker";
+import { RenderJobRepository, VideoHistoryRepository } from "../database/repositories";
+import { runWorkflow } from "../../main";
+
+let PORT = Number(process.env.PORT) || 3000;
+let isWorkflowRunning = false;
+
+// Global trigger executor to run main.ts pipeline safely
+async function executeWorkflowAsync() {
+  if (isWorkflowRunning) return;
+  isWorkflowRunning = true;
+  logger.info("Pipeline manual execution triggered via Dashboard API.", "DASHBOARD-SERVER");
+  try {
+    await runWorkflow();
+  } catch (err) {
+    logger.error("Error in background pipeline manual run", err, "DASHBOARD-SERVER");
+  } finally {
+    isWorkflowRunning = false;
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = req.url || "/";
+  const method = req.method || "GET";
+
+  // CORS Headers
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // API Endpoint: Get real-time pipeline status
+  if (url === "/api/status" && method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    const progress = PipelineTracker.getProgress();
+    res.end(JSON.stringify({
+      ...progress,
+      isSystemRunning: isWorkflowRunning
+    }));
+    return;
+  }
+
+  // API Endpoint: Get execution history
+  if (url === "/api/jobs" && method === "GET") {
+    try {
+      const [jobs, history] = await Promise.all([
+        RenderJobRepository.getRecentJobs(15),
+        VideoHistoryRepository.getRecentHistory(15)
+      ]);
+
+      // Merge render jobs with video histories on matching ids or order
+      const mergedJobs = jobs.map((job) => {
+        // Find matching history
+        const matchedVideo = history.find(
+          (h) => h.id === job.video_id || (h.video_title && h.created_at && job.created_at && Math.abs(new Date(h.created_at).getTime() - new Date(job.created_at).getTime()) < 1800000)
+        );
+
+        return {
+          id: job.id,
+          status: job.status,
+          error_message: job.error_message,
+          created_at: job.created_at,
+          video_title: matchedVideo ? matchedVideo.video_title : "Bản Tin Sáng",
+          drive_url: matchedVideo ? matchedVideo.drive_url : undefined,
+          drive_file_id: matchedVideo ? matchedVideo.drive_file_id : undefined,
+          tiktok_publish_id: matchedVideo?.meta_data?.tiktok_publish_id || "N/A",
+          tiktok_url: matchedVideo?.meta_data?.tiktok_url || "N/A",
+          total_articles: matchedVideo?.meta_data?.total_articles || 0
+        };
+      });
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(mergedJobs));
+    } catch (err: any) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message || String(err) }));
+    }
+    return;
+  }
+
+  // API Endpoint: Manually trigger runWorkflow
+  if (url === "/api/trigger" && method === "POST") {
+    if (isWorkflowRunning) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, message: "Hệ thống đang chạy một tiến trình biên dịch khác!" }));
+      return;
+    }
+
+    // Trigger pipeline in the background asynchronously
+    executeWorkflowAsync();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ success: true, message: "Khởi động luồng sinh video thành công!" }));
+    return;
+  }
+
+  // Serve Main Web Dashboard SPA (Single Page Application)
+  if (url === "/" || url === "/index.html") {
+    try {
+      const htmlPath = path.resolve(__dirname, "./index.html");
+      const html = fs.readFileSync(htmlPath, "utf-8");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(html);
+    } catch (readErr: any) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(`Internal Error: Failed to read dashboard UI. ${readErr.message}`);
+    }
+    return;
+  }
+
+  // Handle 404
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Endpoint not found" }));
+});
+
+// Start Server with resilient dynamic fallback if port is in use
+function startServer(currentPort: number) {
+  server.listen(currentPort, () => {
+    logger.success("==================================================", "DASHBOARD");
+    logger.success(`DASHBOARD ONLINE AND RUNNING AT http://localhost:${currentPort}`, "DASHBOARD");
+    logger.success("==================================================", "DASHBOARD");
+  });
+}
+
+server.on("error", (err: any) => {
+  if (err.code === "EADDRINUSE") {
+    logger.warn(`Cổng ${PORT} đã bị chiếm dụng. Đang tự động thử cổng tiếp theo...`, "DASHBOARD");
+    PORT = PORT + 1;
+    setTimeout(() => {
+      startServer(PORT);
+    }, 500);
+  } else {
+    logger.error("Dashboard server error", err, "DASHBOARD");
+  }
+});
+
+startServer(PORT);
+
+export { server };

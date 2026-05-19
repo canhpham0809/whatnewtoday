@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatNew AI Auto Publisher Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --panel-bg: rgba(13, 17, 39, 0.45);
+      --border-color: rgba(255, 255, 255, 0.06);
+      --border-glowing: rgba(0, 240, 255, 0.15);
+      --cyan: #00f0ff;
+      --purple: #bf5af2;
+      --green: #30d158;
+      --amber: #ff9f0a;
+      --red: #ff453a;
+      --text-main: #f5f6fa;
+      --text-muted: #8e95b2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(191, 90, 242, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.08) 0%, transparent 40%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 30px 40px;
+      overflow-x: hidden;
+    }
+
+    /* Container layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header component */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .brand p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(48, 209, 88, 0.1);
+      border: 1px solid rgba(48, 209, 88, 0.2);
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 14px var(--green); }
+      100% { transform: scale(0.9); opacity: 0.6; }
+    }
+
+    /* Dashboard Layout Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    /* Glassmorphism Panel styles */
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .panel:hover {
+      border-color: var(--border-glowing);
+      box-shadow: 0 12px 40px rgba(0, 240, 255, 0.05);
+    }
+
+    .panel-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 25px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Left Control & Tracker Panel */
+    .control-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+      text-align: center;
+    }
+
+    .gauge-wrapper {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .gauge-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.04);
+      stroke-width: 10;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: url(#gauge-gradient);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 502;
+      stroke-dashoffset: 502;
+      transition: stroke-dashoffset 1s ease-out;
+    }
+
+    .gauge-value {
+      position: absolute;
+      font-family: 'Outfit', sans-serif;
+      font-size: 38px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-unit {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: -2px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .trigger-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      border-radius: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(191, 90, 242, 0.3);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .trigger-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 240, 255, 0.4);
+    }
+
+    .trigger-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .trigger-btn:disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Active Job Status Details */
+    .status-details {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .detail-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+    }
+
+    .detail-val {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Right Pipeline Flow Panel */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 14px;
+      padding: 15px 20px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .step-item.active {
+      background: rgba(0, 240, 255, 0.03);
+      border-color: rgba(0, 240, 255, 0.2);
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.02);
+    }
+
+    .step-item.completed {
+      background: rgba(48, 209, 88, 0.02);
+      border-color: rgba(48, 209, 88, 0.15);
+    }
+
+    .step-icon-wrapper {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .step-item.active .step-icon-wrapper {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      border-color: rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+
+    .step-item.completed .step-icon-wrapper {
+      background: rgba(48, 209, 88, 0.1);
+      color: var(--green);
+      border-color: rgba(48, 209, 88, 0.3);
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .step-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 30px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .step-item.pending .step-badge {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+    }
+
+    .step-item.active .step-badge {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      animation: pulse-cyan 1.5s infinite;
+    }
+
+    .step-item.completed .step-badge {
+      background: rgba(48, 209, 88, 0.15);
+      color: var(--green);
+    }
+
+    @keyframes pulse-cyan {
+      0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(0, 240, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+    }
+
+    /* History Table Component */
+    .table-panel {
+      margin-top: 10px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.02);
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    td {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .col-job {
+      font-family: monospace;
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .col-title {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 30px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pill.completed {
+      background: rgba(48, 209, 88, 0.1);
+      color: var(--green);
+      border: 1px solid rgba(48, 209, 88, 0.15);
+    }
+
+    .status-pill.failed {
+      background: rgba(255, 69, 58, 0.1);
+      color: var(--red);
+      border: 1px solid rgba(255, 69, 58, 0.15);
+    }
+
+    .status-pill.rendering {
+      background: rgba(255, 159, 10, 0.1);
+      color: var(--amber);
+      border: 1px solid rgba(255, 159, 10, 0.15);
+    }
+
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-link:hover {
+      background: var(--cyan);
+      color: var(--bg-dark);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+
+    .btn-link.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .error-msg {
+      max-width: 250px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1100px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header Block -->
+    <header>
+      <div class="brand">
+        <h1>WhatNew AI Auto Publisher</h1>
+        <p>Bảng điều khiển giám sát luồng sinh video thời sự và đăng tải tự động lên mạng xã hội</p>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>HỆ THỐNG ONLINE</span>
+      </div>
+    </header>
+
+    <!-- Content Layout Grid -->
+    <div class="dashboard-grid">
+      
+      <!-- Left Column: Gauge Control -->
+      <div class="panel">
+        <div class="panel-title">Tiến Trình Chạy Thật</div>
+        <div class="control-section">
+          <!-- Circular Progress Gauge -->
+          <div class="gauge-wrapper">
+            <svg class="gauge-svg" viewBox="0 0 180 180">
+              <defs>
+                <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00f0ff" />
+                  <stop offset="100%" stop-color="#bf5af2" />
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="90" cy="90" r="80" />
+              <circle id="gauge-fill-bar" class="gauge-fill" cx="90" cy="90" r="80" />
+            </svg>
+            <div class="gauge-value">
+              <span id="gauge-percent-text">0%</span>
+              <span class="gauge-unit">TIẾN ĐỘ</span>
+            </div>
+          </div>
+
+          <!-- Active Details -->
+          <div class="status-details">
+            <div class="detail-row">
+              <span class="detail-label">Trạng thái:</span>
+              <span id="txt-sys-status" class="detail-val">Chờ khởi chạy</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Bước hiện tại:</span>
+              <span id="txt-active-step" class="detail-val">Idle</span>
+            </div>
+            <div class="detail-row" style="flex-direction: column; gap: 4px; margin-top: 10px;">
+              <span class="detail-label">Thông điệp chi tiết:</span>
+              <span id="txt-details-msg" class="detail-val" style="color: var(--text-muted); font-weight: normal; font-size: 11px;">Chờ kích hoạt lịch trình...</span>
+            </div>
+          </div>
+
+          <!-- Trigger Button -->
+          <button id="btn-run-pipeline" class="trigger-btn">
+            🚀 CHẠY THỦ CÔNG NGAY
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Flow Chart Steps -->
+      <div class="panel">
+        <div class="panel-title">Lược Đồ Luồng Biên Dịch (Pipeline Flow Chart)</div>
+        <div class="flow-steps">
+          
+          <!-- Step 1 -->
+          <div id="step-fetching_rss" class="step-item pending">
+            <div class="step-icon-wrapper">📰</div>
+            <div class="step-content">
+              <div class="step-title">Tải tin tức RSS (Ingest News Feeds)</div>
+              <div class="step-desc">Truy vấn RSS từ VnExpress, Tuổi Trẻ, Thanh Niên để lấy các bài viết tin tức thô mới nhất.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 2 -->
+          <div id="step-ai_ranking" class="step-item pending">
+            <div class="step-icon-wrapper">🤖</div>
+            <div class="step-content">
+              <div class="step-title">AI Xếp Hạng & Tóm Tắt (AI Ranking & Scoring)</div>
+              <div class="step-desc">Gemini Pro phân tích bài viết, chọn lọc 20 tin nổi bật nhất và tóm tắt ngắn từ 30-50 từ.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 3 -->
+          <div id="step-generating_slides" class="step-item pending">
+            <div class="step-icon-wrapper">🎨</div>
+            <div class="step-content">
+              <div class="step-title">Dựng Ảnh Slide (Playwright Rendering)</div>
+              <div class="step-desc">Tạo mã HTML/CSS và sử dụng Playwright headless browser để chụp ảnh card slide tỷ lệ dọc 9:16 siêu đẹp.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 4 -->
+          <div id="step-synthesizing_audio" class="step-item pending">
+            <div class="step-icon-wrapper">🎙️</div>
+            <div class="step-content">
+              <div class="step-title">Thuyết Minh AI (Microsoft TTS Synthesis)</div>
+              <div class="step-desc">Tổng hợp giọng thuyết minh đọc tiêu đề slide bằng AI của Edge TTS chuẩn tiếng Việt, thêm khoảng nghỉ 3s.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 5 -->
+          <div id="step-rendering_video" class="step-item pending">
+            <div class="step-icon-wrapper">🎬</div>
+            <div class="step-content">
+              <div class="step-title">Đóng Gói Video (FFmpeg Compilation)</div>
+              <div class="step-desc">Sử dụng FFmpeg ghép các thẻ slide, khớp nối tệp thoại thuyết minh chính xác và chèn nhạc nền nhẹ nhàng.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 6 -->
+          <div id="step-uploading_drive" class="step-item pending">
+            <div class="step-icon-wrapper">☁️</div>
+            <div class="step-content">
+              <div class="step-title">Đồng Bộ Cloud (Google Drive Archiver)</div>
+              <div class="step-desc">Tự động khởi tạo thư mục lưu trữ mới trên Google Drive và lưu trữ cả tệp video MP4 lẫn hình ảnh slide.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+          <!-- Step 7 -->
+          <div id="step-posting_tiktok" class="step-item pending">
+            <div class="step-icon-wrapper">🎵</div>
+            <div class="step-content">
+              <div class="step-title">Tự Động Đăng TikTok (TikTok API Publisher)</div>
+              <div class="step-desc">Sử dụng API v2 của TikTok tải luồng nhị phân video nháp hoặc đăng thẳng trực tiếp lên kênh đã liên kết.</div>
+            </div>
+            <span class="step-badge">CHỜ CHẠY</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- History Panel Block -->
+    <div class="panel table-panel">
+      <div class="panel-title">Nhật Ký 15 Phiên Biên Dịch Gần Nhất (Render Job History)</div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã Phiên (Job ID)</th>
+              <th>Thời Gian Tạo</th>
+              <th>Tiêu Đề Video</th>
+              <th>Trạng Thái</th>
+              <th>Thư Mục Google Drive</th>
+              <th>Mã Đăng TikTok</th>
+              <th>Chi Tiết Lỗi / Logs</th>
+            </tr>
+          </thead>
+          <tbody id="table-history-body">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                Đang nạp dữ liệu từ Supabase...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const stepsList = [
+      "fetching_rss",
+      "ai_ranking",
+      "generating_slides",
+      "synthesizing_audio",
+      "rendering_video",
+      "uploading_drive",
+      "posting_tiktok"
+    ];
+
+    // Main gauge circle length
+    const CIRCLE_LENGTH = 502;
+
+    async function fetchStatus() {
+      try {
+        const response = await fetch("/api/status");
+        const status = await response.json();
+
+        // Update progress gauge ring and texts
+        const percent = status.percentage || 0;
+        const fillOffset = CIRCLE_LENGTH - (CIRCLE_LENGTH * percent) / 100;
+        document.getElementById("gauge-fill-bar").style.strokeDashoffset = fillOffset;
+        document.getElementById("gauge-percent-text").textContent = percent + "%";
+
+        // Update active texts
+        const isRunning = status.isSystemRunning;
+        const btn = document.getElementById("btn-run-pipeline");
+        
+        if (isRunning || status.status === "running") {
+          btn.disabled = true;
+          btn.innerHTML = '<div class="spinner"></div> Đang biên dịch...';
+          document.getElementById("txt-sys-status").style.color = "var(--amber)";
+          document.getElementById("txt-sys-status").textContent = "Đang chạy";
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = "🚀 CHẠY THỦ CÔNG NGAY";
+          if (status.status === "failed") {
+            document.getElementById("txt-sys-status").style.color = "var(--red)";
+            document.getElementById("txt-sys-status").textContent = "Thất bại";
+          } else if (status.status === "completed") {
+            document.getElementById("txt-sys-status").style.color = "var(--green)";
+            document.getElementById("txt-sys-status").textContent = "Hoàn thành";
+          } else {
+            document.getElementById("txt-sys-status").style.color = "var(--text-muted)";
+            document.getElementById("txt-sys-status").textContent = "Chờ khởi chạy";
+          }
+        }
+
+        document.getElementById("txt-active-step").textContent = status.stepName || "Idle";
+        document.getElementById("txt-details-msg").textContent = status.message || "Chờ lịch trình...";
+
+        // Refresh flow chart steps visually
+        const activeStep = status.step;
+        const activeIdx = stepsList.indexOf(activeStep);
+        const sysStatus = status.status;
+
+        stepsList.forEach((stepKey, idx) => {
+          const stepElement = document.getElementById("step-" + stepKey);
+          const badgeElement = stepElement.querySelector(".step-badge");
+
+          if (sysStatus === "idle" || sysStatus === "completed") {
+            // All reset to completed if we finished the job
+            if (sysStatus === "completed") {
+              stepElement.className = "step-item completed";
+              badgeElement.textContent = "HOÀN THÀNH";
+            } else {
+              stepElement.className = "step-item pending";
+              badgeElement.textContent = "CHỜ CHẠY";
+            }
+          } else if (sysStatus === "failed") {
+            if (idx === activeIdx) {
+              stepElement.className = "step-item";
+              stepElement.style.border = "1px solid var(--red)";
+              badgeElement.style.background = "rgba(255, 69, 58, 0.1)";
+              badgeElement.style.color = "var(--red)";
+              badgeElement.textContent = "LỖI";
+            } else if (idx < activeIdx) {
+              stepElement.className = "step-item completed";
+              badgeElement.textContent = "HOÀN THÀNH";
+            } else {
+              stepElement.className = "step-item pending";
+              badgeElement.textContent = "CHỜ CHẠY";
+            }
+          } else { // running
+            if (idx === activeIdx) {
+              stepElement.className = "step-item active";
+              badgeElement.textContent = "ĐANG CHẠY";
+            } else if (idx < activeIdx) {
+              stepElement.className = "step-item completed";
+              badgeElement.textContent = "HOÀN THÀNH";
+            } else {
+              stepElement.className = "step-item pending";
+              badgeElement.textContent = "CHỜ CHẠY";
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error("Error pulling pipeline status:", err);
+      }
+    }
+
+    async function fetchHistory() {
+      try {
+        const response = await fetch("/api/jobs");
+        const jobs = await response.json();
+        const tbody = document.getElementById("table-history-body");
+
+        if (jobs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Không có phiên biên dịch nào được ghi lại.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = jobs.map((job) => {
+          const formattedDate = new Date(job.created_at).toLocaleString("vi-VN");
+          
+          let statusHtml = "";
+          if (job.status === "completed") {
+            statusHtml = '<span class="status-pill completed">Thành công</span>';
+          } else if (job.status === "failed") {
+            statusHtml = '<span class="status-pill failed">Lỗi</span>';
+          } else {
+            statusHtml = '<span class="status-pill rendering">Đang chạy</span>';
+          }
+
+          const driveLinkHtml = job.drive_url 
+            ? `<a href="${job.drive_url}" target="_blank" class="btn-link">📁 Xem Drive</a>`
+            : '<span style="color: var(--text-muted)">Không có</span>';
+
+          const tiktokLinkHtml = (job.tiktok_url && job.tiktok_url !== "N/A" && job.tiktok_url !== "SKIPPED")
+            ? `<a href="${job.tiktok_url}" target="_blank" class="btn-link">🎵 TikTok</a>`
+            : `<span style="color: var(--text-muted); font-size: 11px;">${job.tiktok_publish_id || "N/A"}</span>`;
+
+          return `
+            <tr>
+              <td class="col-job">${job.id.substring(0, 8)}...</td>
+              <td style="color: var(--text-muted);">${formattedDate}</td>
+              <td class="col-title">${job.video_title}</td>
+              <td>${statusHtml}</td>
+              <td>${driveLinkHtml}</td>
+              <td>${tiktokLinkHtml}</td>
+              <td class="error-msg" title="${job.error_message || "Không có lỗi"}" style="color: ${job.error_message ? 'var(--red)' : 'var(--text-muted)'};">${job.error_message || "—"}</td>
+            </tr>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error("Error pulling history jobs:", err);
+      }
+    }
+
+    // Trigger Manual Generation
+    document.getElementById("btn-run-pipeline").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/trigger", { method: "POST" });
+        const result = await res.json();
+        alert(result.message);
+        fetchStatus();
+        setTimeout(fetchHistory, 1000);
+      } catch (e) {
+        alert("Không thể khởi động luồng chạy: " + e.message);
+      }
+    });
+
+    // Initial load
+    fetchStatus();
+    fetchHistory();
+
+    // Auto update polling every 2 seconds
+    setInterval(fetchStatus, 2000);
+    setInterval(fetchHistory, 5000); // 5s for database history is fine
+  </script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatNew - AI News Auto Publisher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --cyan: #00f0ff;
+      --purple: #bc39fa;
+      --pink: #ff2a6d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Ambient Glowing Orbs */
+    .orb {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .orb-cyan {
+      top: -100px;
+      left: -100px;
+      background: var(--cyan);
+    }
+
+    .orb-purple {
+      bottom: -100px;
+      right: -100px;
+      background: var(--purple);
+    }
+
+    /* Grid Overlay */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 10px var(--pink);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    .logo-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-text span {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 25px;
+      font-weight: 500;
+      transition: color 0.3s;
+      font-size: 15px;
+    }
+
+    .nav-links a:hover {
+      color: var(--cyan);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 80px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .badge {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: var(--cyan);
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 30px;
+      display: inline-block;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1.1;
+      max-width: 900px;
+      margin-bottom: 25px;
+      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--cyan) 20%, var(--purple) 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .description {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin-bottom: 40px;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      color: #030712;
+      padding: 16px 36px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      box-shadow: 0 10px 25px rgba(0, 240, 255, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(0, 240, 255, 0.4);
+    }
+
+    .features {
+      margin-top: 100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      width: 100%;
+    }
+
+    .feature-card {
+      background: rgba(17, 24, 39, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 40px 30px;
+      text-align: left;
+      backdrop-filter: blur(10px);
+      transition: border 0.3s;
+    }
+
+    .feature-card:hover {
+      border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    footer {
+      margin-top: 120px;
+      padding: 40px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    footer p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .footer-links a {
+      color: var(--cyan);
+      text-decoration: none;
+      margin: 0 15px;
+      font-size: 14px;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 42, 109, 0.5);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(255, 42, 109, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 42, 109, 0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-cyan"></div>
+  <div class="orb orb-purple"></div>
+  <div class="grid-overlay"></div>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-pulse"></div>
+      <div class="logo-text">What<span>New</span></div>
+    </div>
+    <nav class="nav-links">
+      <a href="terms.html">Điều khoản</a>
+      <a href="privacy.html">Bảo mật</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="badge">AI-Powered Publisher</div>
+    <h1>Tự Động Hóa Biên Tập Tin Tức & <span>Auto-Post TikTok</span></h1>
+    <p class="description">
+      Hệ thống AI tiên tiến tự động tổng hợp tin tức nóng hổi từ các nguồn RSS uy tín, biên kịch kịch bản, thiết kế slide ảnh Neon cao cấp và tự động đăng tải video thuyết minh giọng đọc chuẩn lên TikTok.
+    </p>
+    <button class="cta-button" onclick="window.location.href='mailto:support@whatnew.ai'">Liên Hệ Hợp Tác</button>
+
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📰</div>
+        <h3>Tổng Hợp RSS Tự Động</h3>
+        <p>Tự động cào, xử lý chuẩn hóa và chấm điểm các tin tức thời sự nóng bỏng từ các tòa soạn lớn uy tín thời gian thực.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎙️</div>
+        <h3>Thuyết Minh Giọng Đọc AI</h3>
+        <p>Tổng hợp kịch bản ngắn gọn bằng Gemini và chuyển đổi thành giọng thuyết minh phát thanh viên Nam Minh vô cùng ấm áp, tự nhiên.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎵</div>
+        <h3>Tự Động Xuất Bản TikTok</h3>
+        <p>Kết nối trực tiếp qua TikTok Creator API v2 để tự động đẩy video kết xuất chính chủ lên tài khoản của bạn hàng ngày.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 WhatNew AI News Publisher. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="terms.html">Điều khoản dịch vụ</a>
+      <a href="privacy.html">Chính sách bảo mật</a>
+    </div>
+  </footer>
+</body>
+</html>

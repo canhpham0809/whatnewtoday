@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Morning News Card</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-dark: #070714;
+      --glass-bg: rgba(12, 13, 32, 0.74);
+      --glass-border: rgba(255, 255, 255, 0.08);
+
+      --neon-cyan: #00eaff;
+      --neon-purple: #8b5cf6;
+      --neon-pink: #ff2a6d;
+
+      --text-main: #ffffff;
+      --text-soft: #e5e7eb;
+      --text-muted: #9ca3af;
+
+      --card-shadow: rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(150px);
+      z-index: 1;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .orb-cyan {
+      width: 620px;
+      height: 620px;
+      background: var(--neon-cyan);
+      top: 120px;
+      left: -260px;
+    }
+
+    .orb-purple {
+      width: 760px;
+      height: 760px;
+      background: var(--neon-purple);
+      right: -300px;
+      bottom: 180px;
+    }
+
+    .orb-pink {
+      width: 460px;
+      height: 460px;
+      background: var(--neon-pink);
+      left: 180px;
+      bottom: 520px;
+      opacity: 0.14;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      opacity: 0.45;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      width: 950px;
+      height: 1760px;
+      padding: 70px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      background:
+        linear-gradient(180deg,
+          rgba(15, 18, 42, 0.92) 0%,
+          rgba(10, 10, 28, 0.82) 48%,
+          rgba(14, 12, 34, 0.9) 100%);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+
+      border: 1px solid var(--glass-border);
+      border-radius: 36px;
+      box-shadow:
+        0 34px 80px var(--card-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 0% 20%, rgba(0, 234, 255, 0.12), transparent 34%),
+        radial-gradient(circle at 100% 85%, rgba(139, 92, 246, 0.14), transparent 36%);
+      pointer-events: none;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .stories-timeline {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .timeline-bar {
+      height: 6px;
+      flex: 1;
+      background: rgba(255, 255, 255, 0.13);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .timeline-bar.active::after,
+    .timeline-bar.past::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+
+    .timeline-bar.active::after {
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+    }
+
+    .timeline-bar.past::after {
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-pulse {
+      width: 15px;
+      height: 15px;
+      border-radius: 999px;
+      background: var(--neon-pink);
+      box-shadow: 0 0 18px rgba(255, 42, 109, 0.8);
+      animation: pulse 1.8s infinite;
+    }
+
+    .logo-text {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 27px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #d8fbff 45%, var(--neon-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .index-badge {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 24px;
+      font-weight: 500;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.055);
+      padding: 9px 22px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.065);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 34px;
+      margin-top: -36px;
+    }
+
+    .category-tag {
+      align-self: flex-start;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--neon-cyan);
+      background: rgba(0, 234, 255, 0.1);
+      padding: 12px 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 234, 255, 0.18);
+      box-shadow: 0 0 24px rgba(0, 234, 255, 0.08);
+    }
+
+    .news-title {
+      position: relative;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.8px;
+      color: var(--text-main);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .news-title::before {
+      content: '';
+      position: absolute;
+      left: -56px;
+      top: 14px;
+      width: 7px;
+      height: 78px;
+      background: linear-gradient(180deg, var(--neon-pink), var(--neon-purple));
+      border-radius: 0 999px 999px 0;
+      box-shadow: 0 0 20px rgba(255, 42, 109, 0.35);
+    }
+
+    .image-container {
+      width: 100%;
+      height: 540px;
+      display: none;
+      overflow: hidden;
+      position: relative;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35);
+    }
+
+    .image-container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, transparent 68%, rgba(0, 0, 0, 0.22) 100%),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .news-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scale(1.01);
+    }
+
+    .news-summary {
+      font-size: 32px;
+      line-height: 1.55;
+      color: var(--text-soft);
+      font-weight: 300;
+      text-align: left;
+      letter-spacing: 0.1px;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 36px;
+      border-top: 1px solid rgba(255, 255, 255, 0.075);
+    }
+
+    .source-info {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .source-label {
+      font-size: 16px;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+    }
+
+    .source-name {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 25px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #ffffff;
+    }
+
+    .date-info-top {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: #aeb8c7;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      margin-bottom: -10px;
+    }
+
+    .date-info-top::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 12px var(--neon-cyan);
+      display: inline-block;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 42, 109, 0.65);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 14px rgba(255, 42, 109, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 42, 109, 0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="orb orb-cyan"></div>
+  <div class="orb orb-purple"></div>
+  <div class="orb orb-pink"></div>
+  <div class="grid-overlay"></div>
+
+  <main class="container">
+    <header class="header">
+      <div class="stories-timeline" id="stories-timeline"></div>
+
+      <div class="brand-section">
+        <div class="logo-container">
+          <div class="logo-pulse"></div>
+          <span class="logo-text">Today News</span>
+        </div>
+
+        <div class="index-badge" id="card-index">01 / 20</div>
+      </div>
+    </header>
+
+    <section class="content-area">
+      <div class="date-info-top" id="card-date">
+        12:30 - Thứ Ba, 19/05/2026
+      </div>
+
+      <span class="category-tag" id="card-category">Tin nóng</span>
+
+      <h1 class="news-title" id="card-title">
+        Nutifood GrowPLUS+ mừng sinh nhật lớn: Hành trình theo đuổi khoa học dinh dưỡng bền bỉ
+      </h1>
+
+      <div class="image-container" id="card-image-container">
+        <img class="news-image" id="card-image" src="" alt="Thumbnail" />
+      </div>
+
+      <p class="news-summary" id="card-summary">
+        Trên hành trình bền bỉ chinh phục nhiều thành tựu lớn, Nutifood GrowPLUS+ không chỉ liên tục trải qua những cột
+        mốc đáng tự hào, mà còn mở ra chặng đường mới với nhiều ấp ủ lớn lao.
+      </p>
+    </section>
+
+    <footer class="footer">
+      <div class="source-info">
+        <span class="source-label">Nguồn tin</span>
+        <span class="source-name" id="card-source">Báo Thanh Niên</span>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    function updateCardContent(data) {
+      document.getElementById('card-title').innerText = data.title || '';
+      document.getElementById('card-summary').innerText = data.summary || '';
+      document.getElementById('card-category').innerText = data.category || 'TIN NÓNG';
+      document.getElementById('card-source').innerText = data.source || 'RSS Feed';
+      document.getElementById('card-date').innerText = data.date || '';
+      document.getElementById('card-index').innerText =
+        `${String(data.index || 1).padStart(2, '0')} / ${String(data.total || 20).padStart(2, '0')}`;
+
+      const imgContainer = document.getElementById('card-image-container');
+      const img = document.getElementById('card-image');
+
+      if (data.thumbnail && data.thumbnail.trim() !== '') {
+        img.src = data.thumbnail;
+        imgContainer.style.display = 'block';
+      } else {
+        img.src = '';
+        imgContainer.style.display = 'none';
+      }
+
+      const timeline = document.getElementById('stories-timeline');
+      timeline.innerHTML = '';
+
+      const total = Number(data.total || 20);
+      const index = Number(data.index || 1);
+
+      for (let i = 0; i < total; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'timeline-bar';
+
+        if (i < index - 1) {
+          bar.classList.add('past');
+        } else if (i === index - 1) {
+          bar.classList.add('active');
+        }
+
+        timeline.appendChild(bar);
+      }
+    }
+  </script>
+</body>
+
+</html>
