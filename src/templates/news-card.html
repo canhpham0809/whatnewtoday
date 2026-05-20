@@ -784,6 +784,7 @@
             `;
             titleEl.parentNode.insertBefore(dtEl, titleEl.nextSibling);
           }
+          dtEl.style.display = 'flex';
           dtEl.innerHTML = `<span style="color:#ffd60a;font-size:26px;">🕐</span>
             <span style="background:rgba(255,214,10,0.12);border:1px solid rgba(255,214,10,0.25);border-radius:12px;padding:6px 18px;font-weight:800;font-size:28px;color:#fff;letter-spacing:1.5px;">${hh}:${mm}</span>
             <span style="color:#9ca3af;font-size:23px;">${dayName}, ${dd}/${mo}/${yy}</span>`;
