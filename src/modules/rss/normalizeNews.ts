@@ -45,9 +45,15 @@ export function upgradeImageUrl(url: string): string {
     const u = new URL(url);
     const host = u.hostname; // e.g. "thethao247.vn"
 
-    // ── thethao247.vn ──────────────────────────────────────────────────────────
+    // ── thethao247.vn / cdn-img.thethao247.vn ────────────────────────────────
     if (host.includes("thethao247")) {
       let p = u.pathname;
+      // ★ Primary CDN pattern: /resize_NNNxNNN// → /  (e.g. /resize_300x200//storage/files/...)
+      p = p.replace(/^\/resize_\d+x\d+\/\//i, "/");
+      // Also handle variant: /resize_NNN/
+      p = p.replace(/^\/resize_\d+\/\//i, "/");
+      // Also handle single-slash variant: /resize_NNNxNNN/
+      p = p.replace(/^\/resize_\d+x\d+\//i, "/");
       // Strip path segment: /thumb/200x150/ → /
       p = p.replace(/\/thumb\/\d+x\d+\//i, "/");
       // Strip directory dimension: /200x150/ → /
