@@ -764,14 +764,21 @@
 
         // Insert or update datetime badge below title
         try {
-          const now = toVN(parseCustomDate(data.date));
-          const hh = String(now.getUTCHours()).padStart(2, '0');
-          const mm = String(now.getUTCMinutes()).padStart(2, '0');
-          const dd = String(now.getUTCDate()).padStart(2, '0');
-          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
-          const yy = now.getUTCFullYear();
-          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-          const dayName = days[now.getUTCDay()];
+          // data.date is already VN time string "DD/MM/YYYY - HH:MM" (from getVietnamTime())
+          // Do NOT apply toVN() again — that would double the UTC+7 offset
+          const vnDays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          let hh, mm, dd, mo, yy, dayName;
+          const vm = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          if (vm) {
+            dd = (vm[1] || '01').padStart(2, '0'); mo = (vm[2] || '01').padStart(2, '0'); yy = vm[3];
+            hh = (vm[4] || '0').padStart(2, '0'); mm = (vm[5] || '00');
+            dayName = vnDays[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
+          } else {
+            const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
+            hh = String(now.getUTCHours()).padStart(2, '0'); mm = String(now.getUTCMinutes()).padStart(2, '0');
+            dd = String(now.getUTCDate()).padStart(2, '0'); mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+            yy = String(now.getUTCFullYear()); dayName = vnDays[now.getUTCDay()];
+          }
           let dtEl = document.getElementById('card-title-datetime');
           if (!dtEl) {
             dtEl = document.createElement('div');
@@ -919,14 +926,21 @@
           titleEl.parentNode.insertBefore(coverTs, titleEl.nextSibling);
         }
         try {
-          const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
-          const hh = String(now.getUTCHours()).padStart(2, '0');
-          const mm = String(now.getUTCMinutes()).padStart(2, '0');
-          const dd = String(now.getUTCDate()).padStart(2, '0');
-          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
-          const yy = now.getUTCFullYear();
-          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-          const dayName = days[now.getUTCDay()];
+          // data.date may be a string (VN time, from getVietnamTime()) or a Date (UTC from pub_date)
+          // Parse strings directly to avoid double UTC+7 offset
+          const vnDays2 = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          let hh, mm, dd, mo, yy, dayName;
+          const vm2 = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          if (vm2) {
+            dd = (vm2[1] || '01').padStart(2, '0'); mo = (vm2[2] || '01').padStart(2, '0'); yy = vm2[3];
+            hh = (vm2[4] || '0').padStart(2, '0'); mm = (vm2[5] || '00');
+            dayName = vnDays2[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
+          } else {
+            const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
+            hh = String(now.getUTCHours()).padStart(2, '0'); mm = String(now.getUTCMinutes()).padStart(2, '0');
+            dd = String(now.getUTCDate()).padStart(2, '0'); mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+            yy = String(now.getUTCFullYear()); dayName = vnDays2[now.getUTCDay()];
+          }
           document.getElementById('cover-ts-value').innerText = `${hh}:${mm}`;
           document.getElementById('cover-ts-date').innerText = `${dayName}, ${dd}/${mo}/${yy}`;
           coverTs.style.display = 'flex';
