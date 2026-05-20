@@ -724,6 +724,20 @@
       footer.style.display = 'flex';
       gridContainer.style.display = 'none';
 
+      // Ẩn các element động từ lần render trước (Playwright page reuse)
+      const _coverTs = document.getElementById('cover-timestamp');
+      if (_coverTs) _coverTs.style.display = 'none';
+      const _titleDt = document.getElementById('card-title-datetime');
+      if (_titleDt) _titleDt.style.display = 'none';
+      const _footerDt = document.getElementById('card-footer-datetime');
+      if (_footerDt) _footerDt.style.display = 'none';
+      // Reset title gradient (dùng cho gold slide)
+      titleEl.style.background = '';
+      titleEl.style.webkitBackgroundClip = '';
+      titleEl.style.webkitTextFillColor = '';
+      titleEl.style.lineHeight = '';
+
+
       // 2. Apply Custom Layouts for Cover / Outro / Gold Price Table
       if (isGoldPrice) {
         // --- Gold Price Table slide layout ---

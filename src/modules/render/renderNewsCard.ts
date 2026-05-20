@@ -250,7 +250,7 @@ export async function renderGoldPriceSlides(
   // Render Cover slide for Gold
   const coverData = {
     title: "Giá Vàng Hôm Nay",
-    summary: `Cập nhật ${dateStr}`,
+    summary: "",
     category: "GIÁ VÀNG",
     source: "WhatNew",
     date: dateStr,
