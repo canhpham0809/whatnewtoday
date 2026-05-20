@@ -791,23 +791,6 @@
         // Footer source info
         document.getElementById('card-source').innerText = data.source || 'Giá Vàng';
 
-        // Add or update footer datetime for gold slides
-        try {
-          const now = toVN(parseCustomDate(data.date));
-          const hh = String(now.getUTCHours()).padStart(2, '0');
-          const mm = String(now.getUTCMinutes()).padStart(2, '0');
-          const dd = String(now.getUTCDate()).padStart(2, '0');
-          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
-          const yy = now.getUTCFullYear();
-          let fEl = document.getElementById('card-footer-datetime');
-          if (!fEl) {
-            fEl = document.createElement('div');
-            fEl.id = 'card-footer-datetime';
-            footer.appendChild(fEl);
-          }
-          fEl.style.cssText = 'color:#9ca3af;font-size:20px;font-weight:500;';
-          fEl.innerText = `Cập nhật: ${hh}:${mm} ${dd}/${mo}/${yy}`;
-        } catch (e) { /* ignore date formatting errors */ }
 
         // === Build redesigned gold price table ===
         summaryEl.style.fontSize = '';
