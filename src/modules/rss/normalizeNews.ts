@@ -30,8 +30,63 @@ export function stripHtmlTags(htmlStr?: string): string {
 export function extractThumbnailUrl(content?: string): string {
   if (!content) return "";
   const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return match && match[1] ? match[1] : "";
+  const rawUrl = match && match[1] ? match[1] : "";
+  return rawUrl ? upgradeImageUrl(rawUrl) : "";
 }
+
+/**
+ * Upgrades a small/resized thumbnail URL to its full-resolution version.
+ * Handles patterns from common Vietnamese news sources (thethao247, vnexpress, tuoitre, etc.)
+ */
+export function upgradeImageUrl(url: string): string {
+  if (!url) return url;
+
+  try {
+    const u = new URL(url);
+    const host = u.hostname; // e.g. "thethao247.vn"
+
+    // ── thethao247.vn ──────────────────────────────────────────────────────────
+    // Pattern: /images/thumb/NNNx NNN/<path>  →  /images/<path>
+    // Pattern: ?w=NNN or ?width=NNN           →  remove param
+    if (host.includes("thethao247")) {
+      // Strip resize path segment: /thumb/200x150/ → /
+      let p = u.pathname.replace(/\/thumb\/\d+x\d+\//i, "/");
+      // Strip size folder: /200x150/ → /
+      p = p.replace(/\/\d+x\d+\//g, "/");
+      u.pathname = p;
+      // Remove common resize query params
+      ["w", "width", "h", "height", "size", "resize", "quality", "q"].forEach(k => u.searchParams.delete(k));
+      return u.toString();
+    }
+
+    // ── VnExpress ──────────────────────────────────────────────────────────────
+    // Pattern: e.g. image1-200x150.jpg → image1.jpg (strip -WxH suffix before extension)
+    if (host.includes("vnexpress") || host.includes("i-vnexpress")) {
+      u.pathname = u.pathname.replace(/-\d+x\d+(\.[a-z]+)$/i, "$1");
+      ["w", "width", "height", "h"].forEach(k => u.searchParams.delete(k));
+      return u.toString();
+    }
+
+    // ── Tuổi Trẻ / Thanh Niên ─────────────────────────────────────────────────
+    // Pattern: /resize/NNNx NNN/  or  -NNNx NNN. in filename
+    if (host.includes("tuoitre") || host.includes("thanhnien") || host.includes("tienphong")) {
+      u.pathname = u.pathname
+        .replace(/\/resize\/\d+x\d+\//gi, "/")
+        .replace(/-\d+x\d+(\.[a-z]+)$/i, "$1");
+      ["w", "width", "h", "height"].forEach(k => u.searchParams.delete(k));
+      return u.toString();
+    }
+
+    // ── Generic: remove common resize params ──────────────────────────────────
+    ["w", "width", "h", "height", "size", "resize", "thumb"].forEach(k => u.searchParams.delete(k));
+    return u.toString();
+
+  } catch {
+    // URL parse failed — return as-is
+    return url;
+  }
+}
+
 
 /**
  * Normalizes raw RSS feed items into unified NewsArticle entities.
