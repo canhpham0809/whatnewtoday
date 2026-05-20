@@ -12,7 +12,7 @@ interface RenderOptions {
 }
 
 /**
- * Helper to fetch exactly 4 images for Cover & Outro collages.
+ * Helper to fetch exactly 10 images for Cover & Outro collages.
  * Seamlessly falls back to premium stock journalism photos if thumbnails are missing.
  */
 function getGridImages(articlesList: NewsArticle[]): string[] {
@@ -20,14 +20,16 @@ function getGridImages(articlesList: NewsArticle[]): string[] {
     "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1495020689067-958852a6565c?q=80&w=600&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop"
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop"
   ];
   
   const urls = articlesList.map(a => a.thumbnail_url || "").filter(url => url.trim() !== "");
-  while (urls.length < 4) {
+  while (urls.length < 10) {
     urls.push(fallbacks[urls.length % fallbacks.length]);
   }
-  return urls.slice(0, 4);
+  return urls.slice(0, 10);
 }
 
 /**
@@ -131,8 +133,8 @@ export async function renderNewsArticlesToImages(
     if (art.id === "outro-slide") {
       sourceName = "Morning News";
       category = "TẠM BIỆT";
-      // Outro grid images are the last 4 news articles
-      gridImages = getGridImages(articles.slice(0, -1).slice(-4));
+      // Outro grid images are the last 10 news articles
+      gridImages = getGridImages(articles.slice(0, -1).slice(-10));
     } else if (art.source_id && options.sources) {
       const matched = options.sources.find(s => s.id === art.source_id);
       if (matched) {
