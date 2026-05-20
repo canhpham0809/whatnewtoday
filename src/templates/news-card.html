@@ -298,6 +298,47 @@
       transform: scale(1.01);
     }
 
+    /* Beautiful 2x2 Collage Grid for Cover & Outro slides */
+    .cover-images-grid {
+      display: none;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 16px;
+      width: 100%;
+      height: 480px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .grid-img-wrapper {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.025);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .grid-img-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.2) 100%);
+    }
+
+    .grid-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
     .news-summary {
       font-size: 32px;
       line-height: 1.55;
@@ -400,6 +441,14 @@
     </header>
 
     <section class="content-area">
+      <!-- Grid 2x2 ghép ảnh cho slide Bìa và Outro -->
+      <div class="cover-images-grid" id="card-cover-images-grid">
+        <div class="grid-img-wrapper"><img id="grid-img-1" src="" alt="Grid 1" /></div>
+        <div class="grid-img-wrapper"><img id="grid-img-2" src="" alt="Grid 2" /></div>
+        <div class="grid-img-wrapper"><img id="grid-img-3" src="" alt="Grid 3" /></div>
+        <div class="grid-img-wrapper"><img id="grid-img-4" src="" alt="Grid 4" /></div>
+      </div>
+
       <div class="date-info-top" id="card-date">
         12:30 - Thứ Ba, 19/05/2026
       </div>
@@ -440,6 +489,7 @@
       const timeline = document.getElementById('stories-timeline');
       const dateEl = document.getElementById('card-date');
       const imgContainer = document.getElementById('card-image-container');
+      const gridContainer = document.getElementById('card-cover-images-grid');
       const footer = document.querySelector('.footer');
 
       // 1. Reset everything to standard News Card styles first (crucial for Playwright page reuse!)
@@ -464,18 +514,19 @@
       timeline.style.display = 'flex';
       dateEl.style.display = 'flex';
       footer.style.display = 'flex';
+      gridContainer.style.display = 'none';
 
       // 2. Apply Custom Layouts for Cover / Outro
       if (isCover) {
         titleEl.classList.add('cover-title');
-        titleEl.style.fontSize = '72px';
+        titleEl.style.fontSize = '68px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '280px'; // Centered vertically in slide
+        titleEl.style.marginTop = '40px'; 
         titleEl.innerText = data.title || '';
 
         summaryEl.style.fontSize = '36px';
         summaryEl.style.textAlign = 'center';
-        summaryEl.style.marginTop = '60px';
+        summaryEl.style.marginTop = '20px';
         summaryEl.style.color = 'var(--text-soft)';
         summaryEl.innerText = data.summary || '';
 
@@ -491,16 +542,25 @@
         dateEl.style.display = 'none';
         imgContainer.style.display = 'none';
         footer.style.display = 'none';
+
+        // Display the 4-image grid for cover slide!
+        if (data.gridImages && data.gridImages.length >= 4) {
+          gridContainer.style.display = 'grid';
+          document.getElementById('grid-img-1').src = data.gridImages[0];
+          document.getElementById('grid-img-2').src = data.gridImages[1];
+          document.getElementById('grid-img-3').src = data.gridImages[2];
+          document.getElementById('grid-img-4').src = data.gridImages[3];
+        }
       } else if (isOutro) {
         titleEl.classList.add('outro-title');
         titleEl.style.fontSize = '54px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '220px'; // Centered vertically in slide
+        titleEl.style.marginTop = '30px'; 
         titleEl.innerText = data.title || '';
 
         summaryEl.style.fontSize = '34px';
         summaryEl.style.textAlign = 'center';
-        summaryEl.style.marginTop = '50px';
+        summaryEl.style.marginTop = '15px';
         summaryEl.style.color = 'var(--text-soft)';
         summaryEl.innerText = data.summary || '';
 
@@ -516,6 +576,15 @@
         dateEl.style.display = 'none';
         imgContainer.style.display = 'none';
         footer.style.display = 'none';
+
+        // Display the 4-image grid for outro slide!
+        if (data.gridImages && data.gridImages.length >= 4) {
+          gridContainer.style.display = 'grid';
+          document.getElementById('grid-img-1').src = data.gridImages[0];
+          document.getElementById('grid-img-2').src = data.gridImages[1];
+          document.getElementById('grid-img-3').src = data.gridImages[2];
+          document.getElementById('grid-img-4').src = data.gridImages[3];
+        }
       } else {
         // Standard News Slide Fill
         titleEl.innerText = data.title || '';

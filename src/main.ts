@@ -189,7 +189,7 @@ export async function runWorkflow(): Promise<void> {
       fs.mkdirSync(audioTracksDir, { recursive: true });
     }
 
-    // Prepend a virtual Cover slide and append an Outro slide to the slide deck
+    // Prepare Cover & Outro slide details
     const coverArticle: NewsArticle = {
       id: "cover-slide",
       title: "Tổng hợp tin tức",
@@ -199,7 +199,7 @@ export async function runWorkflow(): Promise<void> {
       pub_date: new Date(),
       score: 1000,
       is_ranked: true,
-      thumbnail_url: "" // No thumbnail for the cover, centered layout is beautiful!
+      thumbnail_url: ""
     };
 
     const outroArticle: NewsArticle = {
@@ -213,21 +213,15 @@ export async function runWorkflow(): Promise<void> {
       is_ranked: true,
       thumbnail_url: "" // No thumbnail for the outro, centered layout is beautiful!
     };
-    const renderArticles = [coverArticle, ...summarizedArticles, outroArticle];
+    
+    // Slide deck contains exactly the 20 news articles and the 1 outro slide
+    const renderArticles = [...summarizedArticles, outroArticle];
 
-    const imagePaths = await renderNewsArticlesToImages(renderArticles, { outputDir, sources });
-
-    // Generate a standalone cover photo file named 'cover.png' in the slides folder
-    if (imagePaths.length > 0) {
-      try {
-        const firstSlidePath = imagePaths[0];
-        const coverPath = path.join(outputDir, "cover.png");
-        fs.copyFileSync(firstSlidePath, coverPath);
-        logger.success(`Successfully saved standalone cover photo at: ${coverPath}`, "WORKFLOW");
-      } catch (coverErr) {
-        logger.error("Failed to generate standalone cover photo.", coverErr, "WORKFLOW");
-      }
-    }
+    const imagePaths = await renderNewsArticlesToImages(renderArticles, { 
+      outputDir, 
+      sources,
+      coverArticle
+    });
 
     // 9.5. Synthesize TTS Voice-Overs (Commented out in Image-Only Mode)
     /*

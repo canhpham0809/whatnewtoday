@@ -8,6 +8,26 @@ import { logger } from "../../utils/logger";
 interface RenderOptions {
   outputDir: string;
   sources?: any[];
+  coverArticle?: NewsArticle;
+}
+
+/**
+ * Helper to fetch exactly 4 images for Cover & Outro collages.
+ * Seamlessly falls back to premium stock journalism photos if thumbnails are missing.
+ */
+function getGridImages(articlesList: NewsArticle[]): string[] {
+  const fallbacks = [
+    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1495020689067-958852a6565c?q=80&w=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop"
+  ];
+  
+  const urls = articlesList.map(a => a.thumbnail_url || "").filter(url => url.trim() !== "");
+  while (urls.length < 4) {
+    urls.push(fallbacks[urls.length % fallbacks.length]);
+  }
+  return urls.slice(0, 4);
 }
 
 /**
@@ -60,6 +80,43 @@ export async function renderNewsArticlesToImages(
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1000); // Safety buffer to settle layout
   
+  // Render standalone cover image if provided
+  if (options.coverArticle) {
+    const coverArt = options.coverArticle;
+    const coverPath = path.join(outputDir, "cover.png");
+    
+    // Grid images are the first 4 articles' thumbnails
+    const gridImages = getGridImages(articles);
+    
+    const cardData = {
+      title: coverArt.title,
+      summary: coverArt.summary || "",
+      category: "BẢN TIN SÁNG",
+      source: "Morning News",
+      date: formatVietnameseDate(coverArt.pub_date),
+      index: 0,
+      total: articles.length - 1, // Exclude outro slide count
+      thumbnail: "",
+      gridImages: gridImages
+    };
+    
+    logger.info(`Rendering cover slide directly to standalone: ${coverPath}`, "RENDER-PNG");
+    
+    await page.evaluate((data) => {
+      (window as any).updateCardContent(data);
+    }, cardData);
+    
+    await page.waitForTimeout(1000);
+    
+    await page.screenshot({
+      path: coverPath,
+      type: "png",
+      fullPage: false
+    });
+    
+    logger.success(`Saved cover slide cover.png`, "RENDER-PNG");
+  }
+  
   for (let i = 0; i < articles.length; i++) {
     const art = articles[i];
     const index = i + 1;
@@ -69,13 +126,13 @@ export async function renderNewsArticlesToImages(
     // Dynamic resolution of clean source name and category tags
     let sourceName = "Bản Tin Sáng";
     let category = "TIN NÓNG";
+    let gridImages: string[] = [];
     
-    if (art.id === "cover-slide") {
-      sourceName = "Morning News";
-      category = "BẢN TIN SÁNG";
-    } else if (art.id === "outro-slide") {
+    if (art.id === "outro-slide") {
       sourceName = "Morning News";
       category = "TẠM BIỆT";
+      // Outro grid images are the last 4 news articles
+      gridImages = getGridImages(articles.slice(0, -1).slice(-4));
     } else if (art.source_id && options.sources) {
       const matched = options.sources.find(s => s.id === art.source_id);
       if (matched) {
@@ -94,8 +151,9 @@ export async function renderNewsArticlesToImages(
       source: sourceName,
       date: formatVietnameseDate(art.pub_date),
       index: index,
-      total: articles.length,
-      thumbnail: art.thumbnail_url || ""
+      total: articles.length - 1, // Exclude outro slide count so indices display beautifully as X / 20
+      thumbnail: art.thumbnail_url || "",
+      gridImages: gridImages
     };
     
     logger.info(`Rendering slide ${index}/${articles.length}: "${art.title.substring(0, 40)}..." (Thumbnail: ${art.thumbnail_url || "NONE"})`, "RENDER-PNG");
