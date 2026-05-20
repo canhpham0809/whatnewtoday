@@ -301,17 +301,17 @@
     /* Beautiful 2x5 Collage Grid for Cover & Outro slides */
     .cover-images-grid {
       display: none;
-      grid-template-columns: repeat(5, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 12px;
       width: 100%;
-      height: 480px;
+      height: 820px;
       border-radius: 24px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.11);
       box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
       margin-top: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 25px;
     }
 
     .grid-img-wrapper {
@@ -337,6 +337,13 @@
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+
+    .text-side-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 34px;
     }
 
     .news-summary {
@@ -440,7 +447,7 @@
       </div>
     </header>
 
-    <section class="content-area">
+    <section class="content-area" id="card-content-area">
       <!-- Grid 2x5 ghép ảnh cho slide Bìa và Outro -->
       <div class="cover-images-grid" id="card-cover-images-grid">
         <div class="grid-img-wrapper"><img id="grid-img-1" src="" alt="Grid 1" /></div>
@@ -455,24 +462,26 @@
         <div class="grid-img-wrapper"><img id="grid-img-10" src="" alt="Grid 10" /></div>
       </div>
 
-      <div class="date-info-top" id="card-date">
-        12:30 - Thứ Ba, 19/05/2026
+      <div class="text-side-container" id="card-text-side">
+        <div class="date-info-top" id="card-date">
+          12:30 - Thứ Ba, 19/05/2026
+        </div>
+
+        <span class="category-tag" id="card-category">Tin nóng</span>
+
+        <h1 class="news-title" id="card-title">
+          Nutifood GrowPLUS+ mừng sinh nhật lớn: Hành trình theo đuổi khoa học dinh dưỡng bền bỉ
+        </h1>
+
+        <div class="image-container" id="card-image-container">
+          <img class="news-image" id="card-image" src="" alt="Thumbnail" />
+        </div>
+
+        <p class="news-summary" id="card-summary">
+          Trên hành trình bền bỉ chinh phục nhiều thành tựu lớn, Nutifood GrowPLUS+ không chỉ liên tục trải qua những cột
+          mốc đáng tự hào, mà còn mở ra chặng đường mới với nhiều ấp ủ lớn lao.
+        </p>
       </div>
-
-      <span class="category-tag" id="card-category">Tin nóng</span>
-
-      <h1 class="news-title" id="card-title">
-        Nutifood GrowPLUS+ mừng sinh nhật lớn: Hành trình theo đuổi khoa học dinh dưỡng bền bỉ
-      </h1>
-
-      <div class="image-container" id="card-image-container">
-        <img class="news-image" id="card-image" src="" alt="Thumbnail" />
-      </div>
-
-      <p class="news-summary" id="card-summary">
-        Trên hành trình bền bỉ chinh phục nhiều thành tựu lớn, Nutifood GrowPLUS+ không chỉ liên tục trải qua những cột
-        mốc đáng tự hào, mà còn mở ra chặng đường mới với nhiều ấp ủ lớn lao.
-      </p>
     </section>
 
     <footer class="footer">
@@ -484,9 +493,22 @@
   </main>
 
   <script>
+    const COVER_CATEGORIES = ['BẢN TIN SÁNG', 'THỂ THAO', 'CHÍNH TRỊ', 'XÃ HỘI', 'GIẢI TRÍ', 'GIÁ VÀNG', 'BẢN TIN', 'BÌA', 'COVER'];
+
+    // Topic color config for covers
+    const COVER_COLORS = {
+      'BẢN TIN SÁNG': { bg: 'rgba(255,42,109,0.15)', color: '#ff2a6d', border: 'rgba(255,42,109,0.3)', shadow: 'rgba(255,42,109,0.15)' },
+      'THỂ THAO':     { bg: 'rgba(48,209,88,0.15)',  color: '#30d158', border: 'rgba(48,209,88,0.3)',  shadow: 'rgba(48,209,88,0.15)' },
+      'CHÍNH TRỊ':    { bg: 'rgba(255,69,58,0.15)',   color: '#ff453a', border: 'rgba(255,69,58,0.3)',  shadow: 'rgba(255,69,58,0.15)' },
+      'XÃ HỘI':       { bg: 'rgba(191,90,242,0.15)',  color: '#bf5af2', border: 'rgba(191,90,242,0.3)', shadow: 'rgba(191,90,242,0.15)' },
+      'GIẢI TRÍ':     { bg: 'rgba(255,159,10,0.15)',  color: '#ff9f0a', border: 'rgba(255,159,10,0.3)', shadow: 'rgba(255,159,10,0.15)' },
+      'GIÁ VÀNG':     { bg: 'rgba(255,214,10,0.15)',  color: '#ffd60a', border: 'rgba(255,214,10,0.3)', shadow: 'rgba(255,214,10,0.15)' }
+    };
+
     function updateCardContent(data) {
-      const isCover = data.category === 'BẢN TIN' || data.category === 'BÌA' || data.category === 'COVER' || data.category === 'BẢN TIN SÁNG';
+      const isCover = COVER_CATEGORIES.includes(data.category);
       const isOutro = data.category === 'TẠM BIỆT';
+      const isGoldPrice = data.category === 'GOLD_TABLE';
 
       const titleEl = document.getElementById('card-title');
       const summaryEl = document.getElementById('card-summary');
@@ -496,9 +518,20 @@
       const dateEl = document.getElementById('card-date');
       const imgContainer = document.getElementById('card-image-container');
       const gridContainer = document.getElementById('card-cover-images-grid');
+      const contentArea = document.getElementById('card-content-area');
+      const container = document.querySelector('.container');
       const footer = document.querySelector('.footer');
 
       // 1. Reset everything to standard News Card styles first (crucial for Playwright page reuse!)
+      container.style.justifyContent = 'space-between';
+      container.style.gap = '0px';
+
+      contentArea.classList.remove('split-layout');
+      contentArea.style.flex = '';
+      contentArea.style.justifyContent = '';
+      contentArea.style.alignItems = '';
+      contentArea.style.marginTop = '';
+      
       titleEl.className = 'news-title';
       titleEl.style.fontSize = '48px';
       titleEl.style.textAlign = 'left';
@@ -522,26 +555,202 @@
       footer.style.display = 'flex';
       gridContainer.style.display = 'none';
 
-      // 2. Apply Custom Layouts for Cover / Outro
-      if (isCover) {
+      // 2. Apply Custom Layouts for Cover / Outro / Gold Price Table
+      if (isGoldPrice) {
+        // --- Gold Price Table slide layout ---
+        container.style.justifyContent = 'flex-start';
+        contentArea.style.flex = '1';
+        contentArea.style.justifyContent = 'flex-start';
+        contentArea.style.alignItems = 'stretch';
+        contentArea.style.marginTop = '20px';
+
+        titleEl.classList.add('cover-title');
+        titleEl.style.fontSize = '54px';
+        titleEl.style.textAlign = 'center';
+        titleEl.style.marginTop = '20px';
+        titleEl.innerText = data.title || '';
+
+        // Insert or update datetime under title (format: HH:MM dd/MM/yyyy)
+        try {
+          let now;
+          if (data.date) {
+            if (typeof data.date === 'string') {
+              const m = data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}))?$/);
+              if (m) {
+                const day = parseInt(m[1], 10);
+                const month = parseInt(m[2], 10) - 1;
+                const year = parseInt(m[3], 10);
+                if (m[4]) {
+                  const parts = m[4].split(':');
+                  now = new Date(year, month, day, parseInt(parts[0], 10), parseInt(parts[1], 10));
+                } else {
+                  now = new Date(year, month, day);
+                }
+              } else {
+                now = new Date(data.date);
+              }
+            } else {
+              now = new Date(data.date);
+            }
+          } else {
+            now = new Date();
+          }
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const mo = String(now.getMonth() + 1).padStart(2, '0');
+          const yy = now.getFullYear();
+          const titleDateStr = `${hh}:${mm} ${dd}/${mo}/${yy}`;
+          let dtEl = document.getElementById('card-title-datetime');
+          if (!dtEl) {
+            dtEl = document.createElement('div');
+            dtEl.id = 'card-title-datetime';
+            dtEl.style.textAlign = 'center';
+            dtEl.style.color = 'var(--text-soft)';
+            dtEl.style.fontSize = '20px';
+            dtEl.style.marginTop = '8px';
+            titleEl.parentNode.insertBefore(dtEl, titleEl.nextSibling);
+          }
+          dtEl.innerText = titleDateStr;
+        } catch (e) { /* ignore formatting errors */ }
+
+        const goldColor = COVER_COLORS['GIÁ VÀNG'];
+        categoryTag.innerText = data.storeName || 'GIÁ VÀNG';
+        categoryTag.style.alignSelf = 'center';
+        categoryTag.style.background = goldColor.bg;
+        categoryTag.style.color = goldColor.color;
+        categoryTag.style.borderColor = goldColor.border;
+        categoryTag.style.boxShadow = `0 0 24px ${goldColor.shadow}`;
+
+        indexBadge.style.display = 'none';
+        timeline.style.display = 'none';
+        dateEl.style.display = 'none';
+        imgContainer.style.display = 'none';
+        gridContainer.style.display = 'none';
+        footer.style.display = 'flex';
+
+        // Add or update footer datetime for gold slides
+        try {
+          let now;
+          if (data.date) {
+            if (typeof data.date === 'string') {
+              // Try parse dd/mm/yyyy (vi-VN) to avoid Invalid Date in Safari/Chromium
+              const m = data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}))?$/);
+              if (m) {
+                const day = parseInt(m[1], 10);
+                const month = parseInt(m[2], 10) - 1;
+                const year = parseInt(m[3], 10);
+                if (m[4]) {
+                  const parts = m[4].split(':');
+                  now = new Date(year, month, day, parseInt(parts[0], 10), parseInt(parts[1], 10));
+                } else {
+                  now = new Date(year, month, day);
+                }
+              } else {
+                now = new Date(data.date);
+              }
+            } else {
+              now = new Date(data.date);
+            }
+          } else {
+            now = new Date();
+          }
+          const formatted = now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+          let fEl = document.getElementById('card-footer-datetime');
+          if (fEl) {
+            fEl.innerText = formatted;
+          } else {
+            fEl = document.createElement('div');
+            fEl.id = 'card-footer-datetime';
+            fEl.style.color = 'var(--text-soft)';
+            fEl.style.fontSize = '18px';
+            fEl.style.marginTop = '8px';
+            fEl.innerText = formatted;
+            footer.appendChild(fEl);
+          }
+        } catch (e) { /* ignore date formatting errors */ }
+
+        // Build gold price table in summaryEl area
+        summaryEl.style.fontSize = '28px';
+        summaryEl.style.textAlign = 'left';
+        summaryEl.style.marginTop = '30px';
+        summaryEl.style.color = 'var(--text-soft)';
+
+        const rows = data.goldRows || [];
+        let tableHtml = `<table style="width:100%;border-collapse:collapse;margin-top:20px;">`;
+        tableHtml += `<thead><tr>
+          <th style="text-align:left;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#ffd60a;font-size:22px;letter-spacing:2px;text-transform:uppercase;">Loại Vàng</th>
+          <th style="text-align:right;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#30d158;font-size:22px;letter-spacing:2px;">Mua Vào</th>
+          <th style="text-align:right;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#ff453a;font-size:22px;letter-spacing:2px;">Bán Ra</th>
+        </tr></thead><tbody>`;
+        rows.forEach((row, idx) => {
+          const bg = idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+          
+          let cbHtml = "";
+          if (row.changeBuy && row.changeBuy !== "-") {
+            const isUp = row.changeBuy.startsWith("+");
+            const color = isUp ? "#30d158" : "#ff453a";
+            const arrow = isUp ? "▲" : "▼";
+            cbHtml = `<div style="font-size:16px;color:${color};margin-top:4px;">${arrow} ${row.changeBuy}</div>`;
+          } else if (row.changeBuy === "-") {
+            cbHtml = `<div style="font-size:16px;color:#9ca3af;margin-top:4px;">-</div>`;
+          }
+
+          let csHtml = "";
+          if (row.changeSell && row.changeSell !== "-") {
+            const isUp = row.changeSell.startsWith("+");
+            const color = isUp ? "#30d158" : "#ff453a";
+            const arrow = isUp ? "▲" : "▼";
+            csHtml = `<div style="font-size:16px;color:${color};margin-top:4px;">${arrow} ${row.changeSell}</div>`;
+          } else if (row.changeSell === "-") {
+            csHtml = `<div style="font-size:16px;color:#9ca3af;margin-top:4px;">-</div>`;
+          }
+
+          tableHtml += `<tr style="background:${bg};">
+            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);color:#f5f6fa;font-size:26px;font-weight:600;">${row.label}</td>
+            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;">
+                <div style="color:#30d158;font-size:26px;font-weight:700;">${row.buy}</div>
+                ${cbHtml}
+            </td>
+            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;">
+                <div style="color:#ff453a;font-size:26px;font-weight:700;">${row.sell}</div>
+                ${csHtml}
+            </td>
+          </tr>`;
+        });
+        tableHtml += `</tbody></table>`;
+        summaryEl.innerHTML = tableHtml;
+
+        document.getElementById('card-source').innerText = data.source || 'Giá Vàng';
+      } else if (isCover) {
+        container.style.justifyContent = 'flex-start';
+        container.style.gap = '0px';
+        contentArea.style.flex = '1';
+        contentArea.style.justifyContent = 'center';
+        contentArea.style.alignItems = 'stretch';
+        contentArea.style.marginTop = '0px';
+
         titleEl.classList.add('cover-title');
         titleEl.style.fontSize = '68px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '40px'; 
+        titleEl.style.marginTop = '25px'; 
         titleEl.innerText = data.title || '';
 
         summaryEl.style.fontSize = '36px';
         summaryEl.style.textAlign = 'center';
-        summaryEl.style.marginTop = '20px';
+        summaryEl.style.marginTop = '15px';
         summaryEl.style.color = 'var(--text-soft)';
         summaryEl.innerText = data.summary || '';
 
-        categoryTag.innerText = 'BẢN TIN SÁNG';
+        // Dynamic cover category colors per topic
+        const coverCat = data.category || 'BẢN TIN SÁNG';
+        const colorSet = COVER_COLORS[coverCat] || COVER_COLORS['BẢN TIN SÁNG'];
+        categoryTag.innerText = coverCat;
         categoryTag.style.alignSelf = 'center';
-        categoryTag.style.background = 'rgba(255, 42, 109, 0.15)';
-        categoryTag.style.color = 'var(--neon-pink)';
-        categoryTag.style.borderColor = 'rgba(255, 42, 109, 0.3)';
-        categoryTag.style.boxShadow = '0 0 24px rgba(255, 42, 109, 0.15)';
+        categoryTag.style.background = colorSet.bg;
+        categoryTag.style.color = colorSet.color;
+        categoryTag.style.borderColor = colorSet.border;
+        categoryTag.style.boxShadow = `0 0 24px ${colorSet.shadow}`;
 
         indexBadge.style.display = 'none';
         timeline.style.display = 'none';
@@ -557,10 +766,17 @@
           }
         }
       } else if (isOutro) {
+        container.style.justifyContent = 'flex-start';
+        container.style.gap = '0px';
+        contentArea.style.flex = '1';
+        contentArea.style.justifyContent = 'center';
+        contentArea.style.alignItems = 'center';
+        contentArea.style.marginTop = '0px';
+
         titleEl.classList.add('outro-title');
         titleEl.style.fontSize = '54px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '30px'; 
+        titleEl.style.marginTop = '25px'; 
         titleEl.innerText = data.title || '';
 
         summaryEl.style.fontSize = '34px';

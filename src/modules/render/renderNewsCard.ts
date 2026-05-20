@@ -4,11 +4,15 @@ import fs from "fs";
 import { NewsArticle } from "../database/repositories";
 import { formatVietnameseDate } from "../../utils/date";
 import { logger } from "../../utils/logger";
+import { GoldStorePrice } from "../news/goldPrice";
+
+export type CoverCategory = "BẢN TIN SÁNG" | "THỂ THAO" | "CHÍNH TRỊ" | "XÃ HỘI" | "GIẢI TRÍ" | "GIÁ VÀNG";
 
 interface RenderOptions {
   outputDir: string;
   sources?: any[];
   coverArticle?: NewsArticle;
+  coverCategory?: CoverCategory;
 }
 
 /**
@@ -42,7 +46,7 @@ export async function renderNewsArticlesToImages(
 ): Promise<string[]> {
   logger.info(`Starting rendering for ${articles.length} slides using Playwright...`, "RENDER-PNG");
   
-  const { outputDir } = options;
+  const { outputDir, coverCategory = "BẢN TIN SÁNG" } = options;
   
   // Ensure the output folder exists
   if (!fs.existsSync(outputDir)) {
@@ -93,7 +97,7 @@ export async function renderNewsArticlesToImages(
     const cardData = {
       title: coverArt.title,
       summary: coverArt.summary || "",
-      category: "BẢN TIN SÁNG",
+      category: coverCategory,
       source: "Morning News",
       date: formatVietnameseDate(coverArt.pub_date),
       index: 0,
@@ -102,7 +106,7 @@ export async function renderNewsArticlesToImages(
       gridImages: gridImages
     };
     
-    logger.info(`Rendering cover slide directly to standalone: ${coverPath}`, "RENDER-PNG");
+    logger.info(`Rendering cover slide (category: ${coverCategory}): ${coverPath}`, "RENDER-PNG");
     
     await page.evaluate((data) => {
       (window as any).updateCardContent(data);
@@ -195,5 +199,101 @@ export async function renderNewsArticlesToImages(
   await browser.close();
   logger.success(`Rendering complete. Successfully generated ${imagePaths.length} PNG slides.`, "RENDER-PNG");
   
+  return imagePaths;
+}
+
+/**
+ * Renders gold price slides for all 5 stores into individual 1080x1920 PNG images.
+ */
+export async function renderGoldPriceSlides(
+  goldPrices: GoldStorePrice[],
+  outputDir: string,
+  dateStr: string
+): Promise<string[]> {
+  logger.info(`Starting gold price slide rendering for ${goldPrices.length} stores...`, "RENDER-PNG");
+  
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  } else {
+    const files = fs.readdirSync(outputDir);
+    for (const file of files) {
+      if ((file.startsWith("slide_") || file === "cover.png") && file.endsWith(".png")) {
+        fs.unlinkSync(path.join(outputDir, file));
+      }
+    }
+  }
+  
+  const templatePath = path.resolve(__dirname, "../../templates/news-card.html");
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  await page.setViewportSize({ width: 1080, height: 1920 });
+  await page.goto(`file://${templatePath}`);
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(1000);
+  
+  const imagePaths: string[] = [];
+  
+  // Render Cover slide for Gold
+  const coverData = {
+    title: "Giá Vàng Hôm Nay",
+    summary: `Cập nhật ${dateStr}`,
+    category: "GIÁ VÀNG",
+    source: "WhatNew",
+    date: dateStr,
+    index: 0,
+    total: goldPrices.length,
+    thumbnail: "",
+    gridImages: []
+  };
+  
+  await page.evaluate((data) => { (window as any).updateCardContent(data); }, coverData);
+  await page.waitForTimeout(1000);
+  const coverPath = path.join(outputDir, "cover.png");
+  await page.screenshot({ path: coverPath, type: "png", fullPage: false });
+  logger.success(`Saved gold cover slide cover.png`, "RENDER-PNG");
+  
+  // Render one slide per store
+  for (let i = 0; i < goldPrices.length; i++) {
+    const store = goldPrices[i];
+    const padIndex = String(i + 1).padStart(2, "0");
+    const imagePath = path.join(outputDir, `slide_${padIndex}.png`);
+    
+    let goldRows: { label: string; buy: string; sell: string; changeBuy?: string; changeSell?: string }[] = [];
+    
+    if (store.storeEn === "world") {
+      // World gold: show USD price and the FX rate (VND/USD) buy/sell
+      goldRows = [
+        { label: "Giá Quốc Tế (USD/oz)", buy: store.worldUSD || "N/A", sell: store.worldUSD || "N/A", changeBuy: store.worldChange || "", changeSell: store.worldChange || "" },
+        { label: "Quy đổi (VND/USD)", buy: (store as any).worldRateBuy || (store as any).worldVNDBuy || store.worldVND || "N/A", sell: (store as any).worldRateSell || (store as any).worldVNDSell || store.worldVND || "N/A", changeBuy: (store as any).worldRateChangeBuy || "", changeSell: (store as any).worldRateChangeSell || "" }
+      ];
+    } else {
+      if (store.nhaN) goldRows.push({ label: "Vàng Nhẫn", buy: store.nhaN.buy, sell: store.nhaN.sell, changeBuy: store.nhaN.changeBuy, changeSell: store.nhaN.changeSell });
+      if (store.vang999) goldRows.push({ label: "Vàng 999 (24k)", buy: store.vang999.buy, sell: store.vang999.sell, changeBuy: store.vang999.changeBuy, changeSell: store.vang999.changeSell });
+      if (store.vang998) goldRows.push({ label: "Vàng 980 (23.5k)", buy: store.vang998.buy, sell: store.vang998.sell, changeBuy: store.vang998.changeBuy, changeSell: store.vang998.changeSell });
+    }
+    
+    const cardData = {
+      title: store.store,
+      summary: "",
+      category: "GOLD_TABLE",
+      storeName: store.store,
+      source: store.store,
+      date: dateStr,
+      index: i + 1,
+      total: goldPrices.length,
+      thumbnail: "",
+      goldRows
+    };
+    
+    logger.info(`Rendering gold slide ${i + 1}/${goldPrices.length}: ${store.store}`, "RENDER-PNG");
+    await page.evaluate((data) => { (window as any).updateCardContent(data); }, cardData);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: imagePath, type: "png", fullPage: false });
+    imagePaths.push(imagePath);
+    logger.success(`Saved gold slide slide_${padIndex}.png`, "RENDER-PNG");
+  }
+  
+  await browser.close();
+  logger.success(`Gold price rendering complete. ${imagePaths.length} slides generated.`, "RENDER-PNG");
   return imagePaths;
 }
