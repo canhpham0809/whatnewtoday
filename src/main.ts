@@ -330,6 +330,167 @@ export async function runWorkflow(): Promise<void> {
   }
 }
 
+// ─── All topic definitions (including general + gold) for single-topic runs ──
+const ALL_TOPIC_DEFS: Array<TopicDef & { isGeneral?: boolean; isGold?: boolean }> = [
+  { key: "general" as TopicKey, labelVi: "Bản Tin Tổng Hợp", coverCategory: "BẢN TIN SÁNG", topN: 20, folderSlug: "general", isGeneral: true },
+  ...TOPICS,
+  { key: "gold"    as TopicKey, labelVi: "Giá Vàng",         coverCategory: "GIÁ VÀNG",     topN: 0,  folderSlug: "gold",    isGold: true }
+];
+
+/**
+ * Runs the pipeline for a SINGLE topic only (for quick testing/re-runs).
+ * Fetches fresh RSS, ranks & summarizes for the chosen topic, renders slides and uploads to Drive.
+ */
+export async function runTopicWorkflow(topicKey: string): Promise<void> {
+  const startTime = Date.now();
+  const topicDef = ALL_TOPIC_DEFS.find(t => t.key === topicKey);
+  if (!topicDef) throw new Error(`Unknown topic key: "${topicKey}"`);
+
+  logger.info(`[TOPIC-ONLY] ▶ Starting single-topic run: ${topicDef.labelVi.toUpperCase()}`, "WORKFLOW");
+
+  PipelineTracker.updateTopicProgress(topicKey as TopicKey, { status: "running", percentage: 5, message: "Khởi động..." });
+  PipelineTracker.updateProgress({
+    jobId: `job_${Date.now()}`,
+    status: "running",
+    step: "fetching_rss",
+    stepName: `Chạy riêng: ${topicDef.labelVi}`,
+    percentage: 5,
+    message: `Đang chạy riêng chủ đề: ${topicDef.labelVi}...`,
+    error: undefined,
+    videoTitle: undefined
+  });
+
+  try {
+    const vnTime = getVietnamTime();
+    const dd   = String(vnTime.getDate()).padStart(2, "0");
+    const mm   = String(vnTime.getMonth() + 1).padStart(2, "0");
+    const yyyy = vnTime.getFullYear();
+    const timeStr      = `${String(vnTime.getHours()).padStart(2, "0")}h${String(vnTime.getMinutes()).padStart(2, "0")}`;
+    const dateDisplayStr = `${dd}/${mm}/${yyyy} - ${timeStr.replace("h", ":")}`;
+    const videoTitle   = `${topicDef.labelVi} ${dd}-${mm}-${yyyy}`;
+
+    // ── GOLD: special case, no RSS needed ─────────────────────────────────────
+    if (topicDef.isGold) {
+      PipelineTracker.updateTopicProgress("gold", { percentage: 20, message: "Đang lấy giá vàng..." });
+      const goldPrices = await scrapeGoldPrices();
+      const goldOutputDir = path.resolve(__dirname, "../output/slides/gold");
+      prepareOutputDir(goldOutputDir);
+      await renderGoldPriceSlides(goldPrices, goldOutputDir, dateDisplayStr);
+
+      PipelineTracker.updateTopicProgress("gold", { percentage: 80, message: "Đang upload lên Google Drive..." });
+      const rootFolder = await createDriveFolder(videoTitle);
+      await uploadNewsReleaseToGoogleDrive(`${videoTitle} - Giá Vàng`, "", "", goldOutputDir, rootFolder.folderId);
+
+      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootFolder.webViewUrl });
+      PipelineTracker.updateProgress({ status: "completed", step: "idle", stepName: "Hệ thống đang chờ", percentage: 100, message: `✅ Hoàn tất Giá Vàng sau ${((Date.now() - startTime) / 60000).toFixed(1)} phút!` });
+      return;
+    }
+
+    // ── NEWS TOPICS: fetch + rank + render ────────────────────────────────────
+    const sources = await RssSourceRepository.getActiveSources();
+    if (sources.length === 0) throw new Error("Không có nguồn RSS nào được kích hoạt.");
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 15, message: "Đang tải tin RSS..." });
+    const rawItems = await fetchRssFeeds(sources);
+    const normalizedRaw = normalizeRawNews(rawItems);
+    const savedArticles = await NewsArticleRepository.saveArticles(normalizedRaw);
+
+    const sourceMap: Record<string, string> = {};
+    const sportSourceIds = new Set<string>();
+    for (const src of sources) {
+      sourceMap[src.id] = src.name;
+      if (src.category === "Thể Thao") sportSourceIds.add(src.id);
+    }
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 25, message: "AI đang xếp hạng tin..." });
+    PipelineTracker.updateProgress({ step: "ai_ranking", stepName: "AI Xếp Hạng & Tóm Tắt", percentage: 25 });
+
+    let candidates = await NewsArticleRepository.getUnrankedArticles(24);
+    if (candidates.length === 0) candidates = savedArticles;
+    else {
+      candidates = candidates.map(c => {
+        const orig = normalizedRaw.find(s => s.url === c.url);
+        return { ...c, thumbnail_url: orig ? orig.thumbnail_url : c.thumbnail_url };
+      });
+    }
+
+    const candidatesWithThumbs = candidates.filter(c => {
+      const t = c.thumbnail_url;
+      return t && t.trim() !== "" && t !== "NONE";
+    });
+    const deduplicated = deduplicateNewsArticles(candidatesWithThumbs);
+    const preScored    = scoreArticles(deduplicated);
+
+    // Rank articles for chosen topic
+    let rankedArticles: NewsArticle[];
+    if (topicDef.isGeneral) {
+      rankedArticles = await rankNewsArticles(preScored);
+    } else {
+      let pool = preScored;
+      if (topicKey === "sports" && sportSourceIds.size > 0) {
+        const sportArts = preScored.filter(a => a.source_id && sportSourceIds.has(a.source_id));
+        const otherArts = preScored.filter(a => !a.source_id || !sportSourceIds.has(a.source_id));
+        pool = [...sportArts, ...otherArts];
+        logger.info(`[SPORTS] Boosted ${sportArts.length} sport-source articles.`, "WORKFLOW");
+      }
+      rankedArticles = await rankNewsByCategory(pool, topicDef.labelVi, topicDef.topN, sourceMap);
+    }
+
+    if (rankedArticles.length === 0) {
+      PipelineTracker.updateTopicProgress(topicKey as TopicKey, { status: "completed", percentage: 100, slideCount: 0, message: "Không có tin trong chủ đề này hôm nay." });
+      PipelineTracker.updateProgress({ status: "completed", step: "idle", stepName: "Hệ thống đang chờ", percentage: 100, message: "Không tìm thấy tin phù hợp." });
+      return;
+    }
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 55, message: "Đang tóm tắt và dựng slide..." });
+    PipelineTracker.updateProgress({ step: "generating_slides", stepName: "Tạo Slide Hình Ảnh", percentage: 55 });
+    const summarized = await summarizeNewsArticles(rankedArticles);
+
+    const outroSlide: NewsArticle = {
+      id: `outro-${topicKey}`,
+      title: ` Cảm Ơn Quý Vị Đã Theo Dõi Bản Tin ${topicDef.labelVi}`,
+      summary: "Chúc quý vị một ngày tràn đầy năng lượng! Hẹn gặp lại trong bản tin tiếp theo.",
+      description: "", url: `https://whatnew.outro.${topicKey}`,
+      pub_date: new Date(), score: 0, is_ranked: true, thumbnail_url: ""
+    };
+    const coverSlide: NewsArticle = {
+      id: `cover-${topicKey}`,
+      title: topicDef.isGeneral ? "Tổng hợp tin tức" : `${topicDef.labelVi} Nổi Bật`,
+      summary: "",
+      description: "", url: `https://whatnew.cover.${topicKey}`,
+      pub_date: new Date(), score: 1000, is_ranked: true, thumbnail_url: ""
+    };
+
+    const renderArticles = [...summarized, outroSlide];
+    const outputDir = path.resolve(__dirname, `../output/slides/${topicDef.folderSlug}`);
+    prepareOutputDir(outputDir);
+    await renderNewsArticlesToImages(renderArticles, { outputDir, sources, coverArticle: coverSlide, coverCategory: topicDef.coverCategory });
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 80, message: "Đang upload lên Google Drive..." });
+    const rootFolder = await createDriveFolder(videoTitle);
+    await uploadNewsReleaseToGoogleDrive(`${videoTitle} - ${topicDef.labelVi}`, "", "", outputDir, rootFolder.folderId);
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, {
+      status: "completed", percentage: 100,
+      slideCount: renderArticles.length,
+      driveUrl: rootFolder.webViewUrl
+    });
+
+    const durationMin = ((Date.now() - startTime) / 60000).toFixed(2);
+    PipelineTracker.updateProgress({
+      status: "completed", step: "idle", stepName: "Hệ thống đang chờ",
+      percentage: 100,
+      message: `✅ Hoàn tất "${topicDef.labelVi}" (${renderArticles.length} slides) sau ${durationMin} phút!`
+    });
+
+  } catch (error: any) {
+    logger.error(`[TOPIC-ONLY] Pipeline failed for ${topicKey}`, error, "WORKFLOW");
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { status: "failed", error: error.message });
+    PipelineTracker.updateProgress({ status: "failed", error: error.message, message: `Lỗi: ${error.message}` });
+  }
+}
+
+
 /**
  * Downloads a file from a URL and saves it to a local path (No external deps).
  */

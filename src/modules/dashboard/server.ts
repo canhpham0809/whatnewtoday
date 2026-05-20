@@ -4,7 +4,7 @@ import * as path from "path";
 import { logger } from "../../utils/logger";
 import { PipelineTracker } from "../../utils/pipelineTracker";
 import { RenderJobRepository, VideoHistoryRepository, ScheduleRepository, ScheduleEntry } from "../database/repositories";
-import { runWorkflow } from "../../main";
+import { runWorkflow, runTopicWorkflow } from "../../main";
 import { initScheduleManager, reloadSchedule, removeSchedule, setExternalWorkflowRunning } from "../scheduler/scheduleManager";
 
 let PORT = Number(process.env.PORT) || 3000;
@@ -20,6 +20,22 @@ async function executeWorkflowAsync() {
     await runWorkflow();
   } catch (err) {
     logger.error("Error in background pipeline manual run", err, "DASHBOARD-SERVER");
+  } finally {
+    isWorkflowRunning = false;
+    setExternalWorkflowRunning(false);
+  }
+}
+
+// Single-topic trigger executor
+async function executeTopicAsync(topicKey: string) {
+  if (isWorkflowRunning) return;
+  isWorkflowRunning = true;
+  setExternalWorkflowRunning(true);
+  logger.info(`Single-topic run triggered via Dashboard: ${topicKey}`, "DASHBOARD-SERVER");
+  try {
+    await runTopicWorkflow(topicKey);
+  } catch (err) {
+    logger.error(`Error in single-topic run for ${topicKey}`, err, "DASHBOARD-SERVER");
   } finally {
     isWorkflowRunning = false;
     setExternalWorkflowRunning(false);
@@ -100,6 +116,34 @@ const server = http.createServer(async (req, res) => {
     executeWorkflowAsync();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ success: true, message: "Khởi động luồng sinh video thành công!" }));
+    return;
+  }
+
+  // API Endpoint: Trigger a SINGLE topic workflow
+  if (url === "/api/trigger-topic" && method === "POST") {
+    if (isWorkflowRunning) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, message: "Hệ thống đang chạy. Vui lòng đợi hoàn thành trước!" }));
+      return;
+    }
+    let body = "";
+    req.on("data", chunk => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const { topicKey } = JSON.parse(body);
+        if (!topicKey) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: false, message: "Thiếu tham số topicKey!" }));
+          return;
+        }
+        executeTopicAsync(topicKey);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, message: `✅ Đã khởi động chạy riêng chủ đề: ${topicKey}` }));
+      } catch (err: any) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: false, message: `Lỗi parse request: ${err.message}` }));
+      }
+    });
     return;
   }
 

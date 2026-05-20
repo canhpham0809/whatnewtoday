@@ -619,6 +619,32 @@
       color: var(--bg-dark);
     }
 
+    /* Individual topic run button */
+    .topic-run-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 0.5px;
+    }
+    .topic-run-btn:hover:not(:disabled) {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.35);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+    }
+    .topic-run-btn:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
     /* ── Schedule Panel ───────────────────────────────────────────── */
     .schedule-panel {
       margin-bottom: 30px;
@@ -1024,6 +1050,7 @@
 
         // Update active texts
         const isRunning = status.isSystemRunning;
+        isAnyRunning = isRunning || status.status === "running";
         const btn = document.getElementById("btn-run-pipeline");
         
         if (isRunning || status.status === "running") {
@@ -1103,6 +1130,8 @@
       }
     }
 
+    let isAnyRunning = false; // track globally for disabling topic buttons
+
     function renderTopicsGrid(topics) {
       const grid = document.getElementById("topics-grid");
       if (!grid) return;
@@ -1135,6 +1164,7 @@
           : '';
 
         const msg = t.error ? `⚠️ ${t.error}` : (t.message || 'Chờ khởi chạy...');
+        const btnDisabled = isAnyRunning ? 'disabled' : '';
 
         return `
           <div class="${cardClass}">
@@ -1143,7 +1173,10 @@
                 <span class="topic-icon">${def.icon}</span>
                 <span class="topic-name">${def.name}</span>
               </div>
-              ${badgeHtml}
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${badgeHtml}
+                <button class="topic-run-btn" onclick="runTopic('${def.key}')" ${btnDisabled} title="Chạy riêng ${def.name}">▶ Chạy</button>
+              </div>
             </div>
             <div class="topic-progress-bar">
               <div class="topic-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${def.color}aa,${def.color});"></div>
@@ -1222,6 +1255,28 @@
         alert("Không thể khởi động luồng chạy: " + e.message);
       }
     });
+
+    // Run a single topic
+    async function runTopic(topicKey) {
+      if (isAnyRunning) {
+        alert('Hệ thống đang chạy. Vui lòng đợi hoàn thành trước!');
+        return;
+      }
+      const names = { general: 'Bản Tin Tổng Hợp', sports: 'Thể Thao', politics: 'Chính Trị', society: 'Xã Hội', entertainment: 'Giải Trí', gold: 'Giá Vàng' };
+      if (!confirm(`Chạy riêng topic: "${names[topicKey] || topicKey}"?`)) return;
+      try {
+        const res = await fetch('/api/trigger-topic', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicKey })
+        });
+        const result = await res.json();
+        alert(result.message);
+        fetchStatus();
+      } catch (e) {
+        alert('Lỗi khởi động: ' + e.message);
+      }
+    }
 
     // ── Schedule Manager ──────────────────────────────────────────────────
     async function fetchSchedules() {
