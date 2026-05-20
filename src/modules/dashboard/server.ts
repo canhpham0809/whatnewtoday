@@ -3,8 +3,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "../../utils/logger";
 import { PipelineTracker } from "../../utils/pipelineTracker";
-import { RenderJobRepository, VideoHistoryRepository } from "../database/repositories";
+import { RenderJobRepository, VideoHistoryRepository, ScheduleRepository, ScheduleEntry } from "../database/repositories";
 import { runWorkflow } from "../../main";
+import { initScheduleManager, reloadSchedule, removeSchedule, setExternalWorkflowRunning } from "../scheduler/scheduleManager";
 
 let PORT = Number(process.env.PORT) || 3000;
 let isWorkflowRunning = false;
@@ -13,6 +14,7 @@ let isWorkflowRunning = false;
 async function executeWorkflowAsync() {
   if (isWorkflowRunning) return;
   isWorkflowRunning = true;
+  setExternalWorkflowRunning(true);
   logger.info("Pipeline manual execution triggered via Dashboard API.", "DASHBOARD-SERVER");
   try {
     await runWorkflow();
@@ -20,6 +22,7 @@ async function executeWorkflowAsync() {
     logger.error("Error in background pipeline manual run", err, "DASHBOARD-SERVER");
   } finally {
     isWorkflowRunning = false;
+    setExternalWorkflowRunning(false);
   }
 }
 
@@ -94,12 +97,57 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: false, message: "Hệ thống đang chạy một tiến trình biên dịch khác!" }));
       return;
     }
-
-    // Trigger pipeline in the background asynchronously
     executeWorkflowAsync();
-
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ success: true, message: "Khởi động luồng sinh video thành công!" }));
+    return;
+  }
+
+  // API Endpoint: Get all schedules
+  if (url === "/api/schedules" && method === "GET") {
+    try {
+      const schedules = await ScheduleRepository.getAll();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(schedules));
+    } catch (err: any) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // API Endpoint: Create or update a schedule
+  if (url === "/api/schedules" && method === "POST") {
+    let body = "";
+    req.on("data", chunk => { body += chunk; });
+    req.on("end", async () => {
+      try {
+        const entry: ScheduleEntry = JSON.parse(body);
+        if (!entry.id) entry.id = `sched-${Date.now()}`;
+        const saved = await ScheduleRepository.upsert(entry);
+        reloadSchedule(entry);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(saved));
+      } catch (err: any) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API Endpoint: Delete a schedule by id
+  if (url.startsWith("/api/schedules/") && method === "DELETE") {
+    const id = url.replace("/api/schedules/", "");
+    try {
+      await ScheduleRepository.delete(id);
+      removeSchedule(id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: true }));
+    } catch (err: any) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
@@ -124,10 +172,12 @@ const server = http.createServer(async (req, res) => {
 
 // Start Server with resilient dynamic fallback if port is in use
 function startServer(currentPort: number) {
-  server.listen(currentPort, () => {
+  server.listen(currentPort, async () => {
     logger.success("==================================================", "DASHBOARD");
     logger.success(`DASHBOARD ONLINE AND RUNNING AT http://localhost:${currentPort}`, "DASHBOARD");
     logger.success("==================================================", "DASHBOARD");
+    // Initialize dynamic schedule manager after server starts
+    await initScheduleManager();
   });
 }
 

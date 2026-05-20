@@ -1,0 +1,101 @@
+[
+  {
+    "store": "Vàng Thế Giới",
+    "storeEn": "world",
+    "worldUSD": "$4,482.01",
+    "worldVND": "117,074,583",
+    "worldRateBuy": "26,121",
+    "worldRateSell": "26,391",
+    "worldChange": "+7.79",
+    "worldRateChangeBuy": "-",
+    "worldRateChangeSell": "-"
+  },
+  {
+    "store": "Vàng SJC",
+    "storeEn": "sjc",
+    "nhaN": {
+      "buy": "15,800",
+      "sell": "16,110",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang998": {
+      "buy": "15,142",
+      "sell": "15,792",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang999": {
+      "buy": "15,900",
+      "sell": "16,200",
+      "changeBuy": "-",
+      "changeSell": "-"
+    }
+  },
+  {
+    "store": "Vàng PNJ",
+    "storeEn": "pnj",
+    "nhaN": {
+      "buy": "15,900",
+      "sell": "16,200",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang998": {
+      "buy": "15,684",
+      "sell": "16,084",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang999": {
+      "buy": "15,700",
+      "sell": "16,100",
+      "changeBuy": "-",
+      "changeSell": "-"
+    }
+  },
+  {
+    "store": "Bảo Tín Minh Châu",
+    "storeEn": "btmc",
+    "nhaN": {
+      "buy": "15,900",
+      "sell": "16,200",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang998": {
+      "buy": "15,680",
+      "sell": "16,080",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang999": {
+      "buy": "15,700",
+      "sell": "16,100",
+      "changeBuy": "-",
+      "changeSell": "-"
+    }
+  },
+  {
+    "store": "Vàng Mi Hồng",
+    "storeEn": "mihong",
+    "nhaN": {
+      "buy": "15,950",
+      "sell": "16,100",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang998": {
+      "buy": "14,120",
+      "sell": "14,370",
+      "changeBuy": "-",
+      "changeSell": "-"
+    },
+    "vang999": {
+      "buy": "15,950",
+      "sell": "16,100",
+      "changeBuy": "-",
+      "changeSell": "-"
+    }
+  }
+]

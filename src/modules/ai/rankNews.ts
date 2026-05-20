@@ -11,6 +11,93 @@ interface RankedItem {
 }
 
 /**
+ * Uses Gemini API to rank and select the Top N articles for a specific Vietnamese category.
+ */
+export async function rankNewsByCategory(
+  articles: NewsArticle[],
+  categoryVi: string,
+  topN: number = 10,
+  sourceMap?: Record<string, string>  // sourceId → sourceName
+): Promise<NewsArticle[]> {
+  logger.info(`Ranking ${articles.length} articles for category [${categoryVi}]...`, "AI-RANK");
+
+  if (articles.length === 0) return [];
+
+  const candidates = articles.slice(0, 100);
+
+  if (env.isGeminiMock) {
+    logger.info(`Running Gemini Mock Ranking for [${categoryVi}]...`, "AI-RANK");
+    return candidates.slice(0, topN).map((art, index) => ({
+      ...art,
+      score: 100 - index * 8,
+      is_ranked: true
+    }));
+  }
+
+  const formattedCandidates = candidates.map((c) => ({
+    id: c.id,
+    title: c.title,
+    description: c.description || "",
+    source: (sourceMap && c.source_id && sourceMap[c.source_id]) ? sourceMap[c.source_id] : (c.source_id || "Chung")
+  }));
+
+  const prompt = `Bạn là biên tập viên tin tức chuyên về mảng "${categoryVi}". Dưới đây là danh sách các bài viết tin tức dưới dạng JSON:
+
+${JSON.stringify(formattedCandidates, null, 2)}
+
+Nhiệm vụ của bạn:
+1. Chỉ chọn ra ĐÚNG tối đa ${topN} tin tức thuộc chủ đề "${categoryVi}" quan trọng và nổi bật nhất.
+2. Nếu một tin không liên quan đến "${categoryVi}", KHÔNG được chọn.
+3. Chấm điểm cho từng tin được chọn trên thang điểm 100.
+4. Trả về kết quả dưới dạng mảng JSON:
+[
+  {
+    "id": "id_cua_tin_tuc",
+    "score": 95,
+    "reason": "Lý do ngắn gọn bằng tiếng Việt."
+  }
+]
+
+CHÚ Ý: Chỉ trả về JSON hợp lệ, không có Markdown hay ký tự dư thừa.`;
+
+  try {
+    const model = genAI!.getGenerativeModel({
+      model: MODEL_NAME,
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    logger.info(`Sending category ranking request to Gemini API for [${categoryVi}]...`, "AI-RANK");
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().trim();
+
+    const rankedList: RankedItem[] = cleanAndParseJSON<RankedItem[]>(responseText);
+
+    if (!Array.isArray(rankedList)) {
+      throw new Error("Gemini response is not a JSON array.");
+    }
+
+    const rankedArticles: NewsArticle[] = [];
+    for (const item of rankedList) {
+      const original = candidates.find((c) => c.id === item.id);
+      if (original) {
+        rankedArticles.push({ ...original, score: item.score, is_ranked: true });
+      }
+    }
+
+    const sorted = rankedArticles.sort((a, b) => (b.score || 0) - (a.score || 0));
+    logger.success(`Category [${categoryVi}]: Ranked ${sorted.length} articles. Slicing to top ${topN}.`, "AI-RANK");
+    return sorted.slice(0, topN);
+  } catch (error: any) {
+    logger.error(`Error ranking for category [${categoryVi}]. Falling back to rule-based sorting.`, error, "AI-RANK");
+    return candidates.slice(0, topN).map((art, index) => ({
+      ...art,
+      score: 100 - index * 8,
+      is_ranked: true
+    }));
+  }
+}
+
+/**
  * Uses Gemini API to select and rank the Top 20 most hot/important articles from the list.
  */
 export async function rankNewsArticles(articles: NewsArticle[]): Promise<NewsArticle[]> {

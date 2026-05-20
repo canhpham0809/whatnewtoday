@@ -424,3 +424,61 @@ export const RenderJobRepository = {
     return error ? [] : data;
   }
 };
+
+// ─── Schedule Entries ────────────────────────────────────────────────────────
+export interface ScheduleEntry {
+  id: string;
+  label: string;    // e.g. "Bản tin sáng"
+  time: string;     // "HH:MM" Vietnam time (UTC+7)
+  enabled: boolean;
+  created_at?: string;
+}
+
+let mockSchedules: ScheduleEntry[] = [
+  { id: "sched-0600", label: "Bản tin sáng", time: "06:00", enabled: true },
+  { id: "sched-1200", label: "Bản tin trưa", time: "12:00", enabled: false },
+  { id: "sched-1800", label: "Bản tin tối",  time: "18:00", enabled: false },
+];
+
+export const ScheduleRepository = {
+  async getAll(): Promise<ScheduleEntry[]> {
+    if (env.isSupabaseMock) return [...mockSchedules];
+    const { data, error } = await supabase!
+      .from("schedules")
+      .select("*")
+      .order("time", { ascending: true });
+    if (error) {
+      logger.warn("Supabase schedules fetch failed, using in-memory.", "REPO-SCHEDULE");
+      return [...mockSchedules];
+    }
+    return data as ScheduleEntry[];
+  },
+
+  async upsert(entry: ScheduleEntry): Promise<ScheduleEntry | null> {
+    if (env.isSupabaseMock) {
+      const idx = mockSchedules.findIndex(s => s.id === entry.id);
+      if (idx >= 0) mockSchedules[idx] = entry;
+      else mockSchedules.push(entry);
+      return entry;
+    }
+    const { data, error } = await supabase!
+      .from("schedules")
+      .upsert(entry, { onConflict: "id" })
+      .select()
+      .single();
+    if (error) {
+      logger.error("Error upserting schedule entry.", error, "REPO-SCHEDULE");
+      return null;
+    }
+    return data as ScheduleEntry;
+  },
+
+  async delete(id: string): Promise<void> {
+    if (env.isSupabaseMock) {
+      mockSchedules = mockSchedules.filter(s => s.id !== id);
+      return;
+    }
+    const { error } = await supabase!.from("schedules").delete().eq("id", id);
+    if (error) logger.error(`Error deleting schedule ${id}.`, error, "REPO-SCHEDULE");
+  },
+};

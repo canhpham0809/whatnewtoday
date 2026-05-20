@@ -506,6 +506,285 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Topic Progress Grid */
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .topics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .topic-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topic-card.running {
+      border-color: rgba(0, 240, 255, 0.25);
+      background: rgba(0, 240, 255, 0.03);
+    }
+
+    .topic-card.completed {
+      border-color: rgba(48, 209, 88, 0.2);
+      background: rgba(48, 209, 88, 0.02);
+    }
+
+    .topic-card.failed {
+      border-color: rgba(255, 69, 58, 0.2);
+      background: rgba(255, 69, 58, 0.02);
+    }
+
+    .topic-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .topic-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topic-icon {
+      font-size: 22px;
+    }
+
+    .topic-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .topic-progress-bar {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .topic-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.8s ease-out;
+      width: 0%;
+    }
+
+    .topic-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topic-message {
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 70%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .topic-drive-link {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cyan);
+      text-decoration: none;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 3px 10px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .topic-drive-link:hover {
+      background: var(--cyan);
+      color: var(--bg-dark);
+    }
+
+    /* ── Schedule Panel ───────────────────────────────────────────── */
+    .schedule-panel {
+      margin-bottom: 30px;
+    }
+
+    .schedule-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 14px;
+      padding: 14px 20px;
+      transition: all 0.25s ease;
+    }
+
+    .schedule-item.enabled {
+      border-color: rgba(0, 240, 255, 0.2);
+      background: rgba(0, 240, 255, 0.03);
+    }
+
+    .schedule-time {
+      font-family: 'Outfit', monospace;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--cyan);
+      min-width: 80px;
+      letter-spacing: 1px;
+    }
+
+    .schedule-item.enabled .schedule-time {
+      text-shadow: 0 0 12px rgba(0,240,255,0.4);
+    }
+
+    .schedule-label {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .schedule-label-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+
+    .toggle-label { font-size: 12px; color: var(--text-muted); }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 999px;
+      transition: 0.3s;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .slider {
+      background: rgba(0,240,255,0.2);
+      border-color: rgba(0,240,255,0.4);
+    }
+
+    .toggle input:checked + .slider::before {
+      transform: translateX(20px);
+      background: var(--cyan);
+      box-shadow: 0 0 8px rgba(0,240,255,0.6);
+    }
+
+    .btn-delete-sched {
+      background: rgba(255,69,58,0.1);
+      border: 1px solid rgba(255,69,58,0.2);
+      color: var(--red);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-delete-sched:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    /* Add schedule form */
+    .add-schedule-form {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      flex-wrap: wrap;
+    }
+
+    .sched-input {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .sched-input:focus {
+      border-color: rgba(0,240,255,0.4);
+    }
+
+    .sched-input[type="time"] { width: 130px; }
+    .sched-input[type="text"] { flex: 1; min-width: 160px; }
+
+    .btn-add-sched {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .btn-add-sched:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0,240,255,0.3);
+    }
   </style>
 </head>
 <body>
@@ -650,6 +929,36 @@
 
     </div>
 
+    <!-- Topic Progress Panel -->
+    <div class="panel" style="margin-bottom: 30px;">
+      <div class="panel-title">
+        Tiến Trình Theo Chủ Đề
+        <span style="font-size: 12px; font-weight: 400; color: var(--text-muted);">Trạng thái xử lý của từng nhóm nội dung</span>
+      </div>
+      <div class="topics-grid" id="topics-grid">
+        <!-- Topic cards rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Schedule Manager Panel -->
+    <div class="panel schedule-panel">
+      <div class="panel-title">
+        ⏰ Lịch Chạy Tự Động
+        <span style="font-size:12px;font-weight:400;color:var(--text-muted);">Múi giờ: Asia/Ho_Chi_Minh (UTC+7)</span>
+      </div>
+
+      <div class="schedule-list" id="schedule-list">
+        <div style="color:var(--text-muted);font-size:13px;padding:10px 0;">Đang tải lịch...</div>
+      </div>
+
+      <!-- Add new schedule form -->
+      <div class="add-schedule-form">
+        <input type="time" id="new-sched-time" class="sched-input" value="08:00" />
+        <input type="text" id="new-sched-label" class="sched-input" placeholder="Tên lịch (vd: Bản tin sáng)" />
+        <button class="btn-add-sched" onclick="addSchedule()">＋ Thêm Lịch</button>
+      </div>
+    </div>
+
     <!-- History Panel Block -->
     <div class="panel table-panel">
       <div class="panel-title">Nhật Ký 15 Phiên Biên Dịch Gần Nhất (Render Job History)</div>
@@ -680,6 +989,15 @@
   </div>
 
   <script>
+    const TOPIC_DEFS = [
+      { key: 'general',       icon: '📰', name: 'Bản Tin Tổng Hợp', color: '#ff2a6d',  grad: 'rgba(255,42,109,0.15)' },
+      { key: 'sports',        icon: '⚽', name: 'Thể Thao',         color: '#30d158',  grad: 'rgba(48,209,88,0.15)' },
+      { key: 'politics',      icon: '🏛️', name: 'Chính Trị',        color: '#ff453a',  grad: 'rgba(255,69,58,0.15)' },
+      { key: 'society',       icon: '🌏', name: 'Xã Hội',           color: '#bf5af2',  grad: 'rgba(191,90,242,0.15)' },
+      { key: 'entertainment', icon: '🎬', name: 'Giải Trí',         color: '#ff9f0a',  grad: 'rgba(255,159,10,0.15)' },
+      { key: 'gold',          icon: '🏆', name: 'Giá Vàng',         color: '#ffd60a',  grad: 'rgba(255,214,10,0.15)' },
+    ];
+
     const stepsList = [
       "fetching_rss",
       "ai_ranking",
@@ -730,6 +1048,9 @@
 
         document.getElementById("txt-active-step").textContent = status.stepName || "Idle";
         document.getElementById("txt-details-msg").textContent = status.message || "Chờ lịch trình...";
+
+        // Render topic progress cards
+        renderTopicsGrid(status.topics || {});
 
         // Refresh flow chart steps visually
         const activeStep = status.step;
@@ -782,7 +1103,65 @@
       }
     }
 
+    function renderTopicsGrid(topics) {
+      const grid = document.getElementById("topics-grid");
+      if (!grid) return;
+
+      grid.innerHTML = TOPIC_DEFS.map(def => {
+        const t = topics[def.key] || { status: 'idle', percentage: 0, slideCount: 0 };
+        const pct = t.percentage || 0;
+
+        let badgeHtml = '';
+        let cardClass = 'topic-card';
+        if (t.status === 'running') {
+          cardClass += ' running';
+          badgeHtml = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,240,255,0.12);color:var(--cyan);letter-spacing:0.5px;">ĐANG CHẠY</span>`;
+        } else if (t.status === 'completed') {
+          cardClass += ' completed';
+          badgeHtml = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(48,209,88,0.12);color:var(--green);letter-spacing:0.5px;">✓ XONG</span>`;
+        } else if (t.status === 'failed') {
+          cardClass += ' failed';
+          badgeHtml = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,69,58,0.12);color:var(--red);letter-spacing:0.5px;">LỖI</span>`;
+        } else {
+          badgeHtml = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.05);color:var(--text-muted);letter-spacing:0.5px;">CHỜ</span>`;
+        }
+
+        const driveLink = t.driveUrl
+          ? `<a href="${t.driveUrl}" target="_blank" class="topic-drive-link">📁 Drive</a>`
+          : '';
+
+        const slideCountHtml = t.slideCount > 0
+          ? `<span style="font-size:11px;color:var(--text-muted);">${t.slideCount} slides</span>`
+          : '';
+
+        const msg = t.error ? `⚠️ ${t.error}` : (t.message || 'Chờ khởi chạy...');
+
+        return `
+          <div class="${cardClass}">
+            <div class="topic-header">
+              <div class="topic-label">
+                <span class="topic-icon">${def.icon}</span>
+                <span class="topic-name">${def.name}</span>
+              </div>
+              ${badgeHtml}
+            </div>
+            <div class="topic-progress-bar">
+              <div class="topic-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${def.color}aa,${def.color});"></div>
+            </div>
+            <div class="topic-status-row">
+              <span class="topic-message" title="${msg}">${msg}</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                ${slideCountHtml}
+                ${driveLink}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     async function fetchHistory() {
+
       try {
         const response = await fetch("/api/jobs");
         const jobs = await response.json();
@@ -844,13 +1223,81 @@
       }
     });
 
+    // ── Schedule Manager ──────────────────────────────────────────────────
+    async function fetchSchedules() {
+      try {
+        const res = await fetch("/api/schedules");
+        const schedules = await res.json();
+        renderScheduleList(schedules);
+      } catch (e) {
+        console.error("Error fetching schedules", e);
+      }
+    }
+
+    function renderScheduleList(schedules) {
+      const list = document.getElementById("schedule-list");
+      if (!schedules || schedules.length === 0) {
+        list.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:10px 0;">Chưa có lịch nào. Thêm lịch mới bên dưới.</div>`;
+        return;
+      }
+      list.innerHTML = schedules.map(s => `
+        <div class="schedule-item ${s.enabled ? 'enabled' : ''}" id="sched-item-${s.id}">
+          <div class="schedule-time">${s.time}</div>
+          <div style="flex:1">
+            <div class="schedule-label">${s.label}</div>
+            <div class="schedule-label-sub">${s.enabled ? '🟢 Đang bật — sẽ chạy mỗi ngày lúc ' + s.time : '⭕ Đã tắt'}</div>
+          </div>
+          <div class="toggle-wrap">
+            <span class="toggle-label">${s.enabled ? 'BẬT' : 'TẮT'}</span>
+            <label class="toggle">
+              <input type="checkbox" ${s.enabled ? 'checked' : ''}
+                onchange="toggleSchedule('${s.id}', '${s.label}', '${s.time}', this.checked)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <button class="btn-delete-sched" onclick="deleteSchedule('${s.id}')">🗑 Xóa</button>
+        </div>
+      `).join('');
+    }
+
+    async function toggleSchedule(id, label, time, enabled) {
+      await fetch("/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, label, time, enabled })
+      });
+      fetchSchedules();
+    }
+
+    async function addSchedule() {
+      const time = document.getElementById("new-sched-time").value;
+      const label = document.getElementById("new-sched-label").value.trim();
+      if (!time) { alert("Vui lòng chọn giờ chạy!"); return; }
+      if (!label) { alert("Vui lòng nhập tên cho lịch!"); return; }
+      await fetch("/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: `sched-${Date.now()}`, label, time, enabled: true })
+      });
+      document.getElementById("new-sched-label").value = "";
+      fetchSchedules();
+    }
+
+    async function deleteSchedule(id) {
+      if (!confirm("Bạn có chắc muốn xóa lịch này không?")) return;
+      await fetch(`/api/schedules/${id}`, { method: "DELETE" });
+      fetchSchedules();
+    }
+
     // Initial load
     fetchStatus();
     fetchHistory();
+    fetchSchedules();
 
-    // Auto update polling every 2 seconds
+    // Auto update polling
     setInterval(fetchStatus, 2000);
-    setInterval(fetchHistory, 5000); // 5s for database history is fine
+    setInterval(fetchHistory, 5000);
+    setInterval(fetchSchedules, 10000);
   </script>
 </body>
 </html>

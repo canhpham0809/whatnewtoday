@@ -1,10 +1,54 @@
 {
-  "jobId": "job_1779244346304",
+  "jobId": "job_1779265696448",
   "step": "idle",
   "stepName": "Hệ thống đang chờ",
   "percentage": 100,
   "status": "completed",
-  "message": "Bản tin \"Bản Tin Sáng 20-05-2026\" (chỉ sinh ảnh) đã được xuất bản thành công sau 2.01 phút!",
-  "lastUpdated": "2026-05-20T02:34:26.778Z",
+  "message": "Đã hoàn tất tổng hợp \"Bản Tin Sáng 20-05-2026\" (6 chủ đề) sau 7.08 phút!",
+  "lastUpdated": "2026-05-20T08:35:21.391Z",
+  "topics": {
+    "general": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 21,
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1rt6_zxSluFBFYgWO4S8Fy5oWgHV7VaQF"
+    },
+    "sports": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 11,
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/13s6x_2jnpZ2Fv113aGa6YLrHK4pctP4s"
+    },
+    "politics": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 11,
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1pvUY06plfx1ObjNsUcbotd6nwPoU_C01"
+    },
+    "society": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 11,
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1O_tbEstwzUCMGWseg1_CxxeDtwyETU5P"
+    },
+    "entertainment": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 11,
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1kAtFjz6Pw46356ZX8rP3iVwoe3fTmiR1"
+    },
+    "gold": {
+      "status": "completed",
+      "percentage": 100,
+      "slideCount": 6,
+      "message": "Đang upload giá vàng lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/13FnkN_gtGsXoJRG0GDT314-wrplhAtAB"
+    }
+  },
   "videoTitle": "Bản Tin Sáng 20-05-2026"
 }
