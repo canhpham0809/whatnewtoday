@@ -17,7 +17,7 @@ import { scoreArticles } from "./modules/news/scoreNews";
 import { rankNewsArticles, rankNewsByCategory } from "./modules/ai/rankNews";
 import { summarizeNewsArticles } from "./modules/ai/summarizeNews";
 import { renderNewsArticlesToImages, renderGoldPriceSlides, CoverCategory } from "./modules/render/renderNewsCard";
-import { uploadNewsReleaseToGoogleDrive } from "./modules/storage/googleDrive";
+import { createDriveFolder, uploadNewsReleaseToGoogleDrive } from "./modules/storage/googleDrive";
 import { scrapeGoldPrices } from "./modules/news/goldPrice";
 import { PipelineTracker, TopicKey } from "./utils/pipelineTracker";
 import { getVietnamTime } from "./utils/date";
@@ -158,6 +158,11 @@ export async function runWorkflow(): Promise<void> {
 
     const videoRecord = await VideoHistoryRepository.createVideoRecord(videoTitle);
     videoRecordId = videoRecord.id;
+    const rootDriveFolderName = videoTitle;
+    const rootDriveFolder = await createDriveFolder(rootDriveFolderName);
+    await VideoHistoryRepository.updateVideoRecord(videoRecordId, rootDriveFolder.folderId, rootDriveFolder.webViewUrl);
+    logger.success(`[DRIVE] Root folder created: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
+
     const renderJob = await RenderJobRepository.createRenderJob(videoRecordId, "rendering");
     renderJobId = renderJob.id;
 
@@ -200,9 +205,9 @@ export async function runWorkflow(): Promise<void> {
       PipelineTracker.updateTopicProgress("general", { percentage: 80, message: "Đang upload lên Google Drive..." });
 
       const driveFolderName = `${videoTitle} - ${timeStr} - Tổng Hợp`;
-      const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir);
-      PipelineTracker.updateTopicProgress("general", { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: uploadResult.webViewUrl });
-      logger.success(`[GENERAL] Done. Drive: ${uploadResult.webViewUrl}`, "WORKFLOW");
+      const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir, rootDriveFolder.folderId);
+      PipelineTracker.updateTopicProgress("general", { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: rootDriveFolder.webViewUrl });
+      logger.success(`[GENERAL] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
       logger.error("[GENERAL] Pipeline failed.", err, "WORKFLOW");
       PipelineTracker.updateTopicProgress("general", { status: "failed", error: err.message });
@@ -259,9 +264,9 @@ export async function runWorkflow(): Promise<void> {
         PipelineTracker.updateTopicProgress(topic.key, { percentage: 80, message: "Đang upload lên Google Drive..." });
 
         const driveFolderName = `${videoTitle} - ${timeStr} - ${topic.labelVi}`;
-        const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir);
-        PipelineTracker.updateTopicProgress(topic.key, { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: uploadResult.webViewUrl });
-        logger.success(`[${topic.key.toUpperCase()}] Done. Drive: ${uploadResult.webViewUrl}`, "WORKFLOW");
+        const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir, rootDriveFolder.folderId);
+        PipelineTracker.updateTopicProgress(topic.key, { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: rootDriveFolder.webViewUrl });
+        logger.success(`[${topic.key.toUpperCase()}] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
       } catch (err: any) {
         logger.error(`[${topic.key.toUpperCase()}] Pipeline failed.`, err, "WORKFLOW");
         PipelineTracker.updateTopicProgress(topic.key, { status: "failed", error: err.message });
@@ -288,9 +293,9 @@ export async function runWorkflow(): Promise<void> {
       PipelineTracker.updateTopicProgress("gold", { percentage: 80, message: "Đang upload giá vàng lên Google Drive..." });
 
       const goldDriveFolderName = `${videoTitle} - ${timeStr} - Giá Vàng`;
-      const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir);
-      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: goldUploadResult.webViewUrl });
-      logger.success(`[GOLD] Done. Drive: ${goldUploadResult.webViewUrl}`, "WORKFLOW");
+      const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir, rootDriveFolder.folderId);
+      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootDriveFolder.webViewUrl });
+      logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
       logger.error("[GOLD] Gold price pipeline failed.", err, "WORKFLOW");
       PipelineTracker.updateTopicProgress("gold", { status: "failed", error: err.message });
