@@ -222,35 +222,35 @@
       display: none;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin-top: 22px;
+      gap: 18px;
+      margin-top: 30px;
       font-family: 'Be Vietnam Pro', sans-serif;
-      font-size: 26px;
-      font-weight: 600;
+      font-weight: 700;
       color: #e2e8f0;
-      letter-spacing: 0.5px;
     }
 
     .cover-timestamp .ts-icon {
-      font-size: 24px;
-      opacity: 0.85;
+      font-size: 42px;
+      opacity: 0.9;
     }
 
     .cover-timestamp .ts-value {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      padding: 8px 22px;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      padding: 14px 36px;
+      font-size: 72px;
+      font-weight: 800;
+      letter-spacing: 4px;
       color: #ffffff;
+      line-height: 1;
     }
 
     .cover-timestamp .ts-label {
-      font-size: 22px;
-      font-weight: 400;
-      color: #9ca3af;
+      font-size: 32px;
+      font-weight: 500;
+      color: #94a3b8;
+      letter-spacing: 0.3px;
     }
 
     /* === Gold Price Table redesign === */
@@ -710,13 +710,17 @@
       summaryEl.style.textAlign = 'left';
       summaryEl.style.marginTop = '0px';
       summaryEl.style.color = 'var(--text-soft)';
-      
+      summaryEl.style.display = '';
+
       categoryTag.style.display = 'block';
       categoryTag.style.alignSelf = 'flex-start';
       categoryTag.style.background = 'rgba(0, 234, 255, 0.1)';
       categoryTag.style.color = 'var(--neon-cyan)';
       categoryTag.style.borderColor = 'rgba(0, 234, 255, 0.18)';
       categoryTag.style.boxShadow = '0 0 24px rgba(0, 234, 255, 0.08)';
+      categoryTag.style.fontSize = '';
+      categoryTag.style.letterSpacing = '';
+      categoryTag.style.padding = '';
 
       indexBadge.style.display = 'block';
       timeline.style.display = 'flex';
@@ -870,11 +874,8 @@
         titleEl.style.marginTop = '25px';
         titleEl.innerText = data.title || '';
 
-        summaryEl.style.fontSize = '36px';
-        summaryEl.style.textAlign = 'center';
-        summaryEl.style.marginTop = '15px';
-        summaryEl.style.color = 'var(--text-soft)';
-        summaryEl.innerText = data.summary || '';
+        // Ẩn summary trên cover — thời gian đã hiển thị qua timestamp badge
+        summaryEl.style.display = 'none';
 
         // Dynamic cover category colors per topic
         const coverCat = data.category || 'BẢN TIN SÁNG';
@@ -891,7 +892,11 @@
         categoryTag.style.background = colorSet.bg;
         categoryTag.style.color = colorSet.color;
         categoryTag.style.borderColor = colorSet.border;
-        categoryTag.style.boxShadow = `0 0 24px ${colorSet.shadow}`;
+        categoryTag.style.boxShadow = `0 0 32px ${colorSet.shadow}`;
+        // Tag to hơn cho cover
+        categoryTag.style.fontSize = '28px';
+        categoryTag.style.letterSpacing = '4px';
+        categoryTag.style.padding = '18px 42px';
 
         indexBadge.style.display = 'none';
         timeline.style.display = 'none';

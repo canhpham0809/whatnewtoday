@@ -41,7 +41,7 @@ async function renderCoverAndOutro() {
   // 1. Render Cover Slide
   const coverData = {
     title: "Tổng hợp tin tức",
-    summary: "Sáng ngày 20/05/2026",
+    summary: "",
     category: "BẢN TIN SÁNG",
     source: "Morning News",
     date: "20/05/2026",
