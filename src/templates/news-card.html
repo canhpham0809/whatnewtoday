@@ -217,6 +217,126 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
+    /* === Cover timestamp badge === */
+    .cover-timestamp {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 22px;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: #e2e8f0;
+      letter-spacing: 0.5px;
+    }
+
+    .cover-timestamp .ts-icon {
+      font-size: 24px;
+      opacity: 0.85;
+    }
+
+    .cover-timestamp .ts-value {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 8px 22px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+
+    .cover-timestamp .ts-label {
+      font-size: 22px;
+      font-weight: 400;
+      color: #9ca3af;
+    }
+
+    /* === Gold Price Table redesign === */
+    .gold-price-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 12px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 214, 10, 0.18);
+      box-shadow: 0 8px 40px rgba(255, 214, 10, 0.08);
+    }
+
+    .gold-table-header {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0;
+      padding: 18px 28px;
+      background: rgba(255, 214, 10, 0.12);
+      border-bottom: 1px solid rgba(255, 214, 10, 0.2);
+    }
+
+    .gold-table-header span {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .gold-table-header .th-label { color: #ffd60a; }
+    .gold-table-header .th-buy  { color: #34d399; text-align: right; min-width: 200px; }
+    .gold-table-header .th-sell { color: #f87171; text-align: right; min-width: 200px; }
+
+    .gold-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0;
+      padding: 20px 28px;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      transition: background 0.15s;
+    }
+
+    .gold-row:last-child { border-bottom: none; }
+    .gold-row.even { background: rgba(255, 255, 255, 0.025); }
+    .gold-row.odd  { background: transparent; }
+
+    .gold-row .gr-label {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.2;
+    }
+
+    .gold-row .gr-price-cell {
+      min-width: 200px;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .gold-row .gr-price {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .gold-row .gr-price.buy  { color: #34d399; }
+    .gold-row .gr-price.sell { color: #f87171; }
+
+    .gold-row .gr-change {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .gold-row .gr-change.up   { color: #34d399; }
+    .gold-row .gr-change.down { color: #f87171; }
+    .gold-row .gr-change.flat { color: #6b7280; }
+
     .content-area {
       display: flex;
       flex-direction: column;
@@ -588,13 +708,18 @@
         contentArea.style.alignItems = 'stretch';
         contentArea.style.marginTop = '20px';
 
+        // Title: store name, large & centered
         titleEl.classList.add('cover-title');
-        titleEl.style.fontSize = '54px';
+        titleEl.style.fontSize = '58px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '20px';
-        titleEl.innerText = data.title || '';
+        titleEl.style.marginTop = '10px';
+        titleEl.style.lineHeight = '1.15';
+        titleEl.style.background = 'linear-gradient(135deg, #ffd60a 30%, #ffb800 100%)';
+        titleEl.style.webkitBackgroundClip = 'text';
+        titleEl.style.webkitTextFillColor = 'transparent';
+        titleEl.innerText = data.title || 'Bảng Giá Vàng';
 
-        // Insert or update datetime under title (format: HH:MM dd/MM/yyyy)
+        // Insert or update datetime badge below title
         try {
           const now = parseCustomDate(data.date);
           const hh = String(now.getHours()).padStart(2, '0');
@@ -602,18 +727,23 @@
           const dd = String(now.getDate()).padStart(2, '0');
           const mo = String(now.getMonth() + 1).padStart(2, '0');
           const yy = now.getFullYear();
-          const titleDateStr = `${hh}:${mm} ${dd}/${mo}/${yy}`;
+          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          const dayName = days[now.getDay()];
           let dtEl = document.getElementById('card-title-datetime');
           if (!dtEl) {
             dtEl = document.createElement('div');
             dtEl.id = 'card-title-datetime';
-            dtEl.style.textAlign = 'center';
-            dtEl.style.color = 'var(--text-soft)';
-            dtEl.style.fontSize = '20px';
-            dtEl.style.marginTop = '8px';
+            dtEl.style.cssText = `
+              display: flex; align-items: center; justify-content: center; gap: 10px;
+              text-align: center; font-family: 'Be Vietnam Pro', sans-serif;
+              font-size: 26px; font-weight: 600; color: #e2e8f0; margin-top: 14px;
+              letter-spacing: 0.3px;
+            `;
             titleEl.parentNode.insertBefore(dtEl, titleEl.nextSibling);
           }
-          dtEl.innerText = titleDateStr;
+          dtEl.innerHTML = `<span style="color:#ffd60a;font-size:26px;">🕐</span>
+            <span style="background:rgba(255,214,10,0.12);border:1px solid rgba(255,214,10,0.25);border-radius:12px;padding:6px 18px;font-weight:800;font-size:28px;color:#fff;letter-spacing:1.5px;">${hh}:${mm}</span>
+            <span style="color:#9ca3af;font-size:23px;">${dayName}, ${dd}/${mo}/${yy}</span>`;
         } catch (e) { /* ignore formatting errors */ }
 
         const goldColor = COVER_COLORS['GIÁ VÀNG'];
@@ -623,6 +753,8 @@
         categoryTag.style.color = goldColor.color;
         categoryTag.style.borderColor = goldColor.border;
         categoryTag.style.boxShadow = `0 0 24px ${goldColor.shadow}`;
+        categoryTag.style.fontSize = '20px';
+        categoryTag.style.letterSpacing = '3px';
 
         indexBadge.style.display = 'none';
         timeline.style.display = 'none';
@@ -631,76 +763,77 @@
         gridContainer.style.display = 'none';
         footer.style.display = 'flex';
 
+        // Footer source info
+        document.getElementById('card-source').innerText = data.source || 'Giá Vàng';
+
         // Add or update footer datetime for gold slides
         try {
           const now = parseCustomDate(data.date);
-          const formatted = now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const mo = String(now.getMonth() + 1).padStart(2, '0');
+          const yy = now.getFullYear();
           let fEl = document.getElementById('card-footer-datetime');
-          if (fEl) {
-            fEl.innerText = formatted;
-          } else {
+          if (!fEl) {
             fEl = document.createElement('div');
             fEl.id = 'card-footer-datetime';
-            fEl.style.color = 'var(--text-soft)';
-            fEl.style.fontSize = '18px';
-            fEl.style.marginTop = '8px';
-            fEl.innerText = formatted;
             footer.appendChild(fEl);
           }
+          fEl.style.cssText = 'color:#9ca3af;font-size:20px;font-weight:500;';
+          fEl.innerText = `Cập nhật: ${hh}:${mm} ${dd}/${mo}/${yy}`;
         } catch (e) { /* ignore date formatting errors */ }
 
-        // Build gold price table in summaryEl area
-        summaryEl.style.fontSize = '28px';
-        summaryEl.style.textAlign = 'left';
-        summaryEl.style.marginTop = '30px';
-        summaryEl.style.color = 'var(--text-soft)';
+        // === Build redesigned gold price table ===
+        summaryEl.style.fontSize = '';
+        summaryEl.style.textAlign = '';
+        summaryEl.style.marginTop = '24px';
+        summaryEl.style.color = '';
 
         const rows = data.goldRows || [];
-        let tableHtml = `<table style="width:100%;border-collapse:collapse;margin-top:20px;">`;
-        tableHtml += `<thead><tr>
-          <th style="text-align:left;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#ffd60a;font-size:22px;letter-spacing:2px;text-transform:uppercase;">Loại Vàng</th>
-          <th style="text-align:right;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#30d158;font-size:22px;letter-spacing:2px;">Mua Vào</th>
-          <th style="text-align:right;padding:16px 20px;border-bottom:1px solid rgba(255,214,10,0.2);color:#ff453a;font-size:22px;letter-spacing:2px;">Bán Ra</th>
-        </tr></thead><tbody>`;
+
+        let tableHtml = `<div class="gold-price-wrapper">`;
+        tableHtml += `
+          <div class="gold-table-header">
+            <span class="th-label">Loại Vàng</span>
+            <span class="th-buy">Mua Vào</span>
+            <span class="th-sell">Bán Ra</span>
+          </div>`;
+
         rows.forEach((row, idx) => {
-          const bg = idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
-          
-          let cbHtml = "";
-          if (row.changeBuy && row.changeBuy !== "-") {
-            const isUp = row.changeBuy.startsWith("+");
-            const color = isUp ? "#30d158" : "#ff453a";
-            const arrow = isUp ? "▲" : "▼";
-            cbHtml = `<div style="font-size:16px;color:${color};margin-top:4px;">${arrow} ${row.changeBuy}</div>`;
-          } else if (row.changeBuy === "-") {
-            cbHtml = `<div style="font-size:16px;color:#9ca3af;margin-top:4px;">-</div>`;
+          const rowClass = idx % 2 === 0 ? 'even' : 'odd';
+
+          let cbHtml = '';
+          if (row.changeBuy && row.changeBuy !== '-') {
+            const isUp = row.changeBuy.startsWith('+');
+            cbHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${row.changeBuy}</span>`;
+          } else {
+            cbHtml = `<span class="gr-change flat">—</span>`;
           }
 
-          let csHtml = "";
-          if (row.changeSell && row.changeSell !== "-") {
-            const isUp = row.changeSell.startsWith("+");
-            const color = isUp ? "#30d158" : "#ff453a";
-            const arrow = isUp ? "▲" : "▼";
-            csHtml = `<div style="font-size:16px;color:${color};margin-top:4px;">${arrow} ${row.changeSell}</div>`;
-          } else if (row.changeSell === "-") {
-            csHtml = `<div style="font-size:16px;color:#9ca3af;margin-top:4px;">-</div>`;
+          let csHtml = '';
+          if (row.changeSell && row.changeSell !== '-') {
+            const isUp = row.changeSell.startsWith('+');
+            csHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${row.changeSell}</span>`;
+          } else {
+            csHtml = `<span class="gr-change flat">—</span>`;
           }
 
-          tableHtml += `<tr style="background:${bg};">
-            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);color:#f5f6fa;font-size:26px;font-weight:600;">${row.label}</td>
-            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;">
-                <div style="color:#30d158;font-size:26px;font-weight:700;">${row.buy}</div>
+          tableHtml += `
+            <div class="gold-row ${rowClass}">
+              <span class="gr-label">${row.label}</span>
+              <div class="gr-price-cell">
+                <span class="gr-price buy">${row.buy}</span>
                 ${cbHtml}
-            </td>
-            <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;">
-                <div style="color:#ff453a;font-size:26px;font-weight:700;">${row.sell}</div>
+              </div>
+              <div class="gr-price-cell">
+                <span class="gr-price sell">${row.sell}</span>
                 ${csHtml}
-            </td>
-          </tr>`;
+              </div>
+            </div>`;
         });
-        tableHtml += `</tbody></table>`;
+        tableHtml += `</div>`;
         summaryEl.innerHTML = tableHtml;
-
-        document.getElementById('card-source').innerText = data.source || 'Giá Vàng';
       } else if (isCover) {
         container.style.justifyContent = 'flex-start';
         container.style.gap = '0px';
@@ -712,7 +845,7 @@
         titleEl.classList.add('cover-title');
         titleEl.style.fontSize = '68px';
         titleEl.style.textAlign = 'center';
-        titleEl.style.marginTop = '25px'; 
+        titleEl.style.marginTop = '25px';
         titleEl.innerText = data.title || '';
 
         summaryEl.style.fontSize = '36px';
@@ -736,6 +869,33 @@
         dateEl.style.display = 'none';
         imgContainer.style.display = 'none';
         footer.style.display = 'none';
+
+        // === Cover timestamp: show synthesis time ===
+        let coverTs = document.getElementById('cover-timestamp');
+        if (!coverTs) {
+          coverTs = document.createElement('div');
+          coverTs.id = 'cover-timestamp';
+          coverTs.className = 'cover-timestamp';
+          coverTs.innerHTML = `
+            <span class="ts-icon">🕐</span>
+            <span class="ts-value" id="cover-ts-value">--:--</span>
+            <span class="ts-label" id="cover-ts-date">--/--/----</span>
+          `;
+          titleEl.parentNode.insertBefore(coverTs, titleEl.nextSibling);
+        }
+        try {
+          const now = data.date ? parseCustomDate(data.date) : new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const mo = String(now.getMonth() + 1).padStart(2, '0');
+          const yy = now.getFullYear();
+          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          const dayName = days[now.getDay()];
+          document.getElementById('cover-ts-value').innerText = `${hh}:${mm}`;
+          document.getElementById('cover-ts-date').innerText = `${dayName}, ${dd}/${mo}/${yy}`;
+          coverTs.style.display = 'flex';
+        } catch (e) { coverTs.style.display = 'none'; }
 
         // Display the 10-image grid for cover slide!
         if (data.gridImages && data.gridImages.length > 0) {
