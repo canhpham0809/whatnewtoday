@@ -46,15 +46,15 @@ export function upgradeImageUrl(url: string): string {
     const host = u.hostname; // e.g. "thethao247.vn"
 
     // ── thethao247.vn ──────────────────────────────────────────────────────────
-    // Pattern: /images/thumb/NNNx NNN/<path>  →  /images/<path>
-    // Pattern: ?w=NNN or ?width=NNN           →  remove param
     if (host.includes("thethao247")) {
-      // Strip resize path segment: /thumb/200x150/ → /
-      let p = u.pathname.replace(/\/thumb\/\d+x\d+\//i, "/");
-      // Strip size folder: /200x150/ → /
+      let p = u.pathname;
+      // Strip path segment: /thumb/200x150/ → /
+      p = p.replace(/\/thumb\/\d+x\d+\//i, "/");
+      // Strip directory dimension: /200x150/ → /
       p = p.replace(/\/\d+x\d+\//g, "/");
+      // Strip filename suffix dimension: filename_400x300.jpg → filename.jpg
+      p = p.replace(/[_-]\d+x\d+(\.[a-z0-9]+)$/i, "$1");
       u.pathname = p;
-      // Remove common resize query params
       ["w", "width", "h", "height", "size", "resize", "quality", "q"].forEach(k => u.searchParams.delete(k));
       return u.toString();
     }
@@ -81,7 +81,7 @@ export function upgradeImageUrl(url: string): string {
     ["w", "width", "h", "height", "size", "resize", "thumb"].forEach(k => u.searchParams.delete(k));
     return u.toString();
 
-  } catch {
+  } catch (_e) {
     // URL parse failed — return as-is
     return url;
   }
