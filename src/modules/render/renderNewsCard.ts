@@ -112,7 +112,21 @@ export async function renderNewsArticlesToImages(
       (window as any).updateCardContent(data);
     }, cardData);
     
-    await page.waitForTimeout(1000);
+    // Wait for all 10 grid images to fully load before screenshotting
+    if (gridImages.length > 0) {
+      try {
+        await page.waitForFunction(() => {
+          const imgs = Array.from({ length: 10 }, (_, k) =>
+            document.getElementById(`grid-img-${k + 1}`) as HTMLImageElement
+          );
+          return imgs.every(img => img && img.complete && img.naturalWidth > 0);
+        }, undefined, { timeout: 10000 });
+      } catch (err) {
+        logger.warn("Some grid images failed to load within 10s for cover slide, proceeding anyway.", "RENDER-PNG");
+      }
+    } else {
+      await page.waitForTimeout(1000);
+    }
     
     await page.screenshot({
       path: coverPath,
