@@ -493,6 +493,30 @@
   </main>
 
   <script>
+    function parseCustomDate(dateVal) {
+      if (!dateVal) return new Date();
+      if (dateVal instanceof Date) return dateVal;
+      if (typeof dateVal !== 'string') return new Date(dateVal);
+      
+      const m = dateVal.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*(?:-\s*)?(\d{1,2}:\d{2}))?/);
+      if (m) {
+        const day = parseInt(m[1], 10);
+        const month = parseInt(m[2], 10) - 1;
+        const year = parseInt(m[3], 10);
+        let now;
+        if (m[4]) {
+          const parts = m[4].split(':');
+          now = new Date(year, month, day, parseInt(parts[0], 10), parseInt(parts[1], 10));
+        } else {
+          now = new Date(year, month, day);
+        }
+        if (!isNaN(now.getTime())) return now;
+      }
+      
+      const parsed = new Date(dateVal);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }
+
     const COVER_CATEGORIES = ['BẢN TIN SÁNG', 'THỂ THAO', 'CHÍNH TRỊ', 'XÃ HỘI', 'GIẢI TRÍ', 'GIÁ VÀNG', 'BẢN TIN', 'BÌA', 'COVER'];
 
     // Topic color config for covers
@@ -572,29 +596,7 @@
 
         // Insert or update datetime under title (format: HH:MM dd/MM/yyyy)
         try {
-          let now;
-          if (data.date) {
-            if (typeof data.date === 'string') {
-              const m = data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}))?$/);
-              if (m) {
-                const day = parseInt(m[1], 10);
-                const month = parseInt(m[2], 10) - 1;
-                const year = parseInt(m[3], 10);
-                if (m[4]) {
-                  const parts = m[4].split(':');
-                  now = new Date(year, month, day, parseInt(parts[0], 10), parseInt(parts[1], 10));
-                } else {
-                  now = new Date(year, month, day);
-                }
-              } else {
-                now = new Date(data.date);
-              }
-            } else {
-              now = new Date(data.date);
-            }
-          } else {
-            now = new Date();
-          }
+          const now = parseCustomDate(data.date);
           const hh = String(now.getHours()).padStart(2, '0');
           const mm = String(now.getMinutes()).padStart(2, '0');
           const dd = String(now.getDate()).padStart(2, '0');
@@ -631,30 +633,7 @@
 
         // Add or update footer datetime for gold slides
         try {
-          let now;
-          if (data.date) {
-            if (typeof data.date === 'string') {
-              // Try parse dd/mm/yyyy (vi-VN) to avoid Invalid Date in Safari/Chromium
-              const m = data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}))?$/);
-              if (m) {
-                const day = parseInt(m[1], 10);
-                const month = parseInt(m[2], 10) - 1;
-                const year = parseInt(m[3], 10);
-                if (m[4]) {
-                  const parts = m[4].split(':');
-                  now = new Date(year, month, day, parseInt(parts[0], 10), parseInt(parts[1], 10));
-                } else {
-                  now = new Date(year, month, day);
-                }
-              } else {
-                now = new Date(data.date);
-              }
-            } else {
-              now = new Date(data.date);
-            }
-          } else {
-            now = new Date();
-          }
+          const now = parseCustomDate(data.date);
           const formatted = now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
           let fEl = document.getElementById('card-footer-datetime');
           if (fEl) {
