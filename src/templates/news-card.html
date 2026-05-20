@@ -617,7 +617,7 @@
       if (!dateVal) return new Date();
       if (dateVal instanceof Date) return dateVal;
       if (typeof dateVal !== 'string') return new Date(dateVal);
-      
+
       const m = dateVal.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*(?:-\s*)?(\d{1,2}:\d{2}))?/);
       if (m) {
         const day = parseInt(m[1], 10);
@@ -632,21 +632,46 @@
         }
         if (!isNaN(now.getTime())) return now;
       }
-      
+
       const parsed = new Date(dateVal);
       return isNaN(parsed.getTime()) ? new Date() : parsed;
     }
 
-    const COVER_CATEGORIES = ['BẢN TIN SÁNG', 'THỂ THAO', 'CHÍNH TRỊ', 'XÃ HỘI', 'GIẢI TRÍ', 'GIÁ VÀNG', 'BẢN TIN', 'BÌA', 'COVER'];
+    /**
+     * Chuyển đổi bất kỳ Date nào sang giờ Việt Nam (UTC+7).
+     * Hoạt động đúng cả trên server UTC (Hugging Face) lẫn máy local.
+     */
+    function toVN(d) {
+      // Lấy offset hiện tại của browser/Node (phút), cộng thêm để đủ UTC+7
+      const targetOffsetMs = 7 * 60 * 60 * 1000;
+      const localOffsetMs  = d.getTimezoneOffset() * 60 * 1000; // âm ở VN local
+      return new Date(d.getTime() + targetOffsetMs + localOffsetMs);
+    }
+
+    /**
+     * Trả về nhãn BẢN TIN theo khung giờ Việt Nam.
+     * Sáng: 05:00–11:59 | Trưa: 12:00–13:59 | Chiều: 14:00–17:59 | Tối: 18:00–04:59
+     */
+    function getBanTinLabel(vnHour) {
+      if (vnHour >= 5  && vnHour < 12) return 'BẢN TIN SÁNG';
+      if (vnHour >= 12 && vnHour < 14) return 'BẢN TIN TRƯA';
+      if (vnHour >= 14 && vnHour < 18) return 'BẢN TIN CHIỀU';
+      return 'BẢN TIN TỐI';
+    }
+
+    const COVER_CATEGORIES = ['BẢN TIN SÁNG', 'BẢN TIN TRƯA', 'BẢN TIN CHIỀU', 'BẢN TIN TỐI', 'THỂ THAO', 'CHÍNH TRỊ', 'XÃ HỘI', 'GIẢI TRÍ', 'GIÁ VÀNG', 'BẢN TIN', 'BÌA', 'COVER'];
 
     // Topic color config for covers
     const COVER_COLORS = {
-      'BẢN TIN SÁNG': { bg: 'rgba(255,42,109,0.15)', color: '#ff2a6d', border: 'rgba(255,42,109,0.3)', shadow: 'rgba(255,42,109,0.15)' },
-      'THỂ THAO':     { bg: 'rgba(48,209,88,0.15)',  color: '#30d158', border: 'rgba(48,209,88,0.3)',  shadow: 'rgba(48,209,88,0.15)' },
-      'CHÍNH TRỊ':    { bg: 'rgba(255,69,58,0.15)',   color: '#ff453a', border: 'rgba(255,69,58,0.3)',  shadow: 'rgba(255,69,58,0.15)' },
-      'XÃ HỘI':       { bg: 'rgba(191,90,242,0.15)',  color: '#bf5af2', border: 'rgba(191,90,242,0.3)', shadow: 'rgba(191,90,242,0.15)' },
-      'GIẢI TRÍ':     { bg: 'rgba(255,159,10,0.15)',  color: '#ff9f0a', border: 'rgba(255,159,10,0.3)', shadow: 'rgba(255,159,10,0.15)' },
-      'GIÁ VÀNG':     { bg: 'rgba(255,214,10,0.15)',  color: '#ffd60a', border: 'rgba(255,214,10,0.3)', shadow: 'rgba(255,214,10,0.15)' }
+      'BẢN TIN SÁNG':  { bg: 'rgba(255,42,109,0.15)',  color: '#ff2a6d', border: 'rgba(255,42,109,0.3)',  shadow: 'rgba(255,42,109,0.15)' },
+      'BẢN TIN TRƯA':  { bg: 'rgba(255,159,10,0.15)',  color: '#ff9f0a', border: 'rgba(255,159,10,0.3)',  shadow: 'rgba(255,159,10,0.15)' },
+      'BẢN TIN CHIỀU': { bg: 'rgba(48,209,88,0.15)',   color: '#30d158', border: 'rgba(48,209,88,0.3)',   shadow: 'rgba(48,209,88,0.15)'  },
+      'BẢN TIN TỐI':   { bg: 'rgba(139,92,246,0.15)',  color: '#8b5cf6', border: 'rgba(139,92,246,0.3)',  shadow: 'rgba(139,92,246,0.15)' },
+      'THỂ THAO':      { bg: 'rgba(48,209,88,0.15)',   color: '#30d158', border: 'rgba(48,209,88,0.3)',   shadow: 'rgba(48,209,88,0.15)'  },
+      'CHÍNH TRỊ':     { bg: 'rgba(255,69,58,0.15)',   color: '#ff453a', border: 'rgba(255,69,58,0.3)',   shadow: 'rgba(255,69,58,0.15)'  },
+      'XÃ HỘI':        { bg: 'rgba(191,90,242,0.15)',  color: '#bf5af2', border: 'rgba(191,90,242,0.3)',  shadow: 'rgba(191,90,242,0.15)' },
+      'GIẢI TRÍ':      { bg: 'rgba(255,159,10,0.15)',  color: '#ff9f0a', border: 'rgba(255,159,10,0.3)',  shadow: 'rgba(255,159,10,0.15)' },
+      'GIÁ VÀNG':      { bg: 'rgba(255,214,10,0.15)',  color: '#ffd60a', border: 'rgba(255,214,10,0.3)',  shadow: 'rgba(255,214,10,0.15)' }
     };
 
     function updateCardContent(data) {
@@ -721,14 +746,14 @@
 
         // Insert or update datetime badge below title
         try {
-          const now = parseCustomDate(data.date);
-          const hh = String(now.getHours()).padStart(2, '0');
-          const mm = String(now.getMinutes()).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          const mo = String(now.getMonth() + 1).padStart(2, '0');
-          const yy = now.getFullYear();
+          const now = toVN(parseCustomDate(data.date));
+          const hh = String(now.getUTCHours()).padStart(2, '0');
+          const mm = String(now.getUTCMinutes()).padStart(2, '0');
+          const dd = String(now.getUTCDate()).padStart(2, '0');
+          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const yy = now.getUTCFullYear();
           const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-          const dayName = days[now.getDay()];
+          const dayName = days[now.getUTCDay()];
           let dtEl = document.getElementById('card-title-datetime');
           if (!dtEl) {
             dtEl = document.createElement('div');
@@ -768,12 +793,12 @@
 
         // Add or update footer datetime for gold slides
         try {
-          const now = parseCustomDate(data.date);
-          const hh = String(now.getHours()).padStart(2, '0');
-          const mm = String(now.getMinutes()).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          const mo = String(now.getMonth() + 1).padStart(2, '0');
-          const yy = now.getFullYear();
+          const now = toVN(parseCustomDate(data.date));
+          const hh = String(now.getUTCHours()).padStart(2, '0');
+          const mm = String(now.getUTCMinutes()).padStart(2, '0');
+          const dd = String(now.getUTCDate()).padStart(2, '0');
+          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const yy = now.getUTCFullYear();
           let fEl = document.getElementById('card-footer-datetime');
           if (!fEl) {
             fEl = document.createElement('div');
@@ -856,8 +881,15 @@
 
         // Dynamic cover category colors per topic
         const coverCat = data.category || 'BẢN TIN SÁNG';
-        const colorSet = COVER_COLORS[coverCat] || COVER_COLORS['BẢN TIN SÁNG'];
-        categoryTag.innerText = coverCat;
+        // Nếu là nhóm BẢN TIN → tự detect Sáng/Trưa/Chiều/Tối theo giờ VN
+        const isBanTin = coverCat === 'BẢN TIN SÁNG' || coverCat === 'BẢN TIN' || coverCat === 'BÌA' || coverCat === 'COVER';
+        let displayCat = coverCat;
+        if (isBanTin) {
+          const vnNow = toVN(data.date ? parseCustomDate(data.date) : new Date());
+          displayCat = getBanTinLabel(vnNow.getUTCHours());
+        }
+        const colorSet = COVER_COLORS[displayCat] || COVER_COLORS['BẢN TIN SÁNG'];
+        categoryTag.innerText = displayCat;
         categoryTag.style.alignSelf = 'center';
         categoryTag.style.background = colorSet.bg;
         categoryTag.style.color = colorSet.color;
@@ -884,14 +916,14 @@
           titleEl.parentNode.insertBefore(coverTs, titleEl.nextSibling);
         }
         try {
-          const now = data.date ? parseCustomDate(data.date) : new Date();
-          const hh = String(now.getHours()).padStart(2, '0');
-          const mm = String(now.getMinutes()).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          const mo = String(now.getMonth() + 1).padStart(2, '0');
-          const yy = now.getFullYear();
+          const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
+          const hh = String(now.getUTCHours()).padStart(2, '0');
+          const mm = String(now.getUTCMinutes()).padStart(2, '0');
+          const dd = String(now.getUTCDate()).padStart(2, '0');
+          const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const yy = now.getUTCFullYear();
           const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-          const dayName = days[now.getDay()];
+          const dayName = days[now.getUTCDay()];
           document.getElementById('cover-ts-value').innerText = `${hh}:${mm}`;
           document.getElementById('cover-ts-date').innerText = `${dayName}, ${dd}/${mo}/${yy}`;
           coverTs.style.display = 'flex';
