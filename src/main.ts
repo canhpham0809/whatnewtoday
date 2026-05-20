@@ -189,7 +189,19 @@ export async function runWorkflow(): Promise<void> {
       fs.mkdirSync(audioTracksDir, { recursive: true });
     }
 
-    // Append a virtual Outro slide to the end of the slide deck
+    // Prepend a virtual Cover slide and append an Outro slide to the slide deck
+    const coverArticle: NewsArticle = {
+      id: "cover-slide",
+      title: "Tổng hợp tin tức",
+      summary: `Sáng ngày ${dd}/${mm}/${yyyy}`,
+      description: "Bản tin tổng hợp sáng ngày hôm nay",
+      url: "https://whatnew.cover",
+      pub_date: new Date(),
+      score: 1000,
+      is_ranked: true,
+      thumbnail_url: "" // No thumbnail for the cover, centered layout is beautiful!
+    };
+
     const outroArticle: NewsArticle = {
       id: "outro-slide",
       title: " Cảm Ơn Quý Vị Đã Theo Dõi Bản Tin Hôm Nay",
@@ -201,7 +213,7 @@ export async function runWorkflow(): Promise<void> {
       is_ranked: true,
       thumbnail_url: "" // No thumbnail for the outro, centered layout is beautiful!
     };
-    const renderArticles = [...summarizedArticles, outroArticle];
+    const renderArticles = [coverArticle, ...summarizedArticles, outroArticle];
 
     const imagePaths = await renderNewsArticlesToImages(renderArticles, { outputDir, sources });
 

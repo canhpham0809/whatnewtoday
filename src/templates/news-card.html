@@ -263,6 +263,11 @@
       box-shadow: 0 0 20px rgba(255, 42, 109, 0.35);
     }
 
+    .news-title.cover-title::before,
+    .news-title.outro-title::before {
+      display: none !important;
+    }
+
     .image-container {
       width: 100%;
       height: 540px;
@@ -425,42 +430,124 @@
 
   <script>
     function updateCardContent(data) {
-      document.getElementById('card-title').innerText = data.title || '';
-      document.getElementById('card-summary').innerText = data.summary || '';
-      document.getElementById('card-category').innerText = data.category || 'TIN NÓNG';
-      document.getElementById('card-source').innerText = data.source || 'RSS Feed';
-      document.getElementById('card-date').innerText = data.date || '';
-      document.getElementById('card-index').innerText =
-        `${String(data.index || 1).padStart(2, '0')} / ${String(data.total || 20).padStart(2, '0')}`;
+      const isCover = data.category === 'BẢN TIN' || data.category === 'BÌA' || data.category === 'COVER' || data.category === 'BẢN TIN SÁNG';
+      const isOutro = data.category === 'TẠM BIỆT';
 
-      const imgContainer = document.getElementById('card-image-container');
-      const img = document.getElementById('card-image');
-
-      if (data.thumbnail && data.thumbnail.trim() !== '') {
-        img.src = data.thumbnail;
-        imgContainer.style.display = 'block';
-      } else {
-        img.src = '';
-        imgContainer.style.display = 'none';
-      }
-
+      const titleEl = document.getElementById('card-title');
+      const summaryEl = document.getElementById('card-summary');
+      const categoryTag = document.getElementById('card-category');
+      const indexBadge = document.getElementById('card-index');
       const timeline = document.getElementById('stories-timeline');
-      timeline.innerHTML = '';
+      const dateEl = document.getElementById('card-date');
+      const imgContainer = document.getElementById('card-image-container');
+      const footer = document.querySelector('.footer');
 
-      const total = Number(data.total || 20);
-      const index = Number(data.index || 1);
+      // 1. Reset everything to standard News Card styles first (crucial for Playwright page reuse!)
+      titleEl.className = 'news-title';
+      titleEl.style.fontSize = '48px';
+      titleEl.style.textAlign = 'left';
+      titleEl.style.marginTop = '0px';
+      
+      summaryEl.style.fontSize = '32px';
+      summaryEl.style.textAlign = 'left';
+      summaryEl.style.marginTop = '0px';
+      summaryEl.style.color = 'var(--text-soft)';
+      
+      categoryTag.style.display = 'block';
+      categoryTag.style.alignSelf = 'flex-start';
+      categoryTag.style.background = 'rgba(0, 234, 255, 0.1)';
+      categoryTag.style.color = 'var(--neon-cyan)';
+      categoryTag.style.borderColor = 'rgba(0, 234, 255, 0.18)';
+      categoryTag.style.boxShadow = '0 0 24px rgba(0, 234, 255, 0.08)';
 
-      for (let i = 0; i < total; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'timeline-bar';
+      indexBadge.style.display = 'block';
+      timeline.style.display = 'flex';
+      dateEl.style.display = 'flex';
+      footer.style.display = 'flex';
 
-        if (i < index - 1) {
-          bar.classList.add('past');
-        } else if (i === index - 1) {
-          bar.classList.add('active');
+      // 2. Apply Custom Layouts for Cover / Outro
+      if (isCover) {
+        titleEl.classList.add('cover-title');
+        titleEl.style.fontSize = '72px';
+        titleEl.style.textAlign = 'center';
+        titleEl.style.marginTop = '280px'; // Centered vertically in slide
+        titleEl.innerText = data.title || '';
+
+        summaryEl.style.fontSize = '36px';
+        summaryEl.style.textAlign = 'center';
+        summaryEl.style.marginTop = '60px';
+        summaryEl.style.color = 'var(--text-soft)';
+        summaryEl.innerText = data.summary || '';
+
+        categoryTag.innerText = 'BẢN TIN SÁNG';
+        categoryTag.style.alignSelf = 'center';
+        categoryTag.style.background = 'rgba(255, 42, 109, 0.15)';
+        categoryTag.style.color = 'var(--neon-pink)';
+        categoryTag.style.borderColor = 'rgba(255, 42, 109, 0.3)';
+        categoryTag.style.boxShadow = '0 0 24px rgba(255, 42, 109, 0.15)';
+
+        indexBadge.style.display = 'none';
+        timeline.style.display = 'none';
+        dateEl.style.display = 'none';
+        imgContainer.style.display = 'none';
+        footer.style.display = 'none';
+      } else if (isOutro) {
+        titleEl.classList.add('outro-title');
+        titleEl.style.fontSize = '54px';
+        titleEl.style.textAlign = 'center';
+        titleEl.style.marginTop = '220px'; // Centered vertically in slide
+        titleEl.innerText = data.title || '';
+
+        summaryEl.style.fontSize = '34px';
+        summaryEl.style.textAlign = 'center';
+        summaryEl.style.marginTop = '50px';
+        summaryEl.style.color = 'var(--text-soft)';
+        summaryEl.innerText = data.summary || '';
+
+        categoryTag.innerText = 'TẠM BIỆT';
+        categoryTag.style.alignSelf = 'center';
+        categoryTag.style.background = 'rgba(139, 92, 246, 0.15)';
+        categoryTag.style.color = 'var(--neon-purple)';
+        categoryTag.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+        categoryTag.style.boxShadow = '0 0 24px rgba(139, 92, 246, 0.15)';
+
+        indexBadge.style.display = 'none';
+        timeline.style.display = 'none';
+        dateEl.style.display = 'none';
+        imgContainer.style.display = 'none';
+        footer.style.display = 'none';
+      } else {
+        // Standard News Slide Fill
+        titleEl.innerText = data.title || '';
+        summaryEl.innerText = data.summary || '';
+        categoryTag.innerText = data.category || 'TIN NÓNG';
+        document.getElementById('card-source').innerText = data.source || 'Báo chí';
+        dateEl.innerText = data.date || '';
+        indexBadge.innerText = `${String(data.index || 1).padStart(2, '0')} / ${String(data.total || 20).padStart(2, '0')}`;
+
+        const img = document.getElementById('card-image');
+        if (data.thumbnail && data.thumbnail.trim() !== '') {
+          img.src = data.thumbnail;
+          imgContainer.style.display = 'block';
+        } else {
+          img.src = '';
+          imgContainer.style.display = 'none';
         }
 
-        timeline.appendChild(bar);
+        // Timeline progress fill
+        timeline.innerHTML = '';
+        const total = Number(data.total || 20);
+        const index = Number(data.index || 1);
+        for (let i = 0; i < total; i++) {
+          const bar = document.createElement('div');
+          bar.className = 'timeline-bar';
+          if (i < index - 1) {
+            bar.classList.add('past');
+          } else if (i === index - 1) {
+            bar.classList.add('active');
+          }
+          timeline.appendChild(bar);
+        }
       }
     }
   </script>

@@ -70,7 +70,10 @@ export async function renderNewsArticlesToImages(
     let sourceName = "Bản Tin Sáng";
     let category = "TIN NÓNG";
     
-    if (art.id === "outro-slide") {
+    if (art.id === "cover-slide") {
+      sourceName = "Morning News";
+      category = "BẢN TIN SÁNG";
+    } else if (art.id === "outro-slide") {
       sourceName = "Morning News";
       category = "TẠM BIỆT";
     } else if (art.source_id && options.sources) {
