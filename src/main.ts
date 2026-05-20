@@ -217,7 +217,8 @@ export async function runWorkflow(): Promise<void> {
       }
     }
 
-    // 9.5. Synthesize TTS Voice-Overs
+    // 9.5. Synthesize TTS Voice-Overs (Commented out in Image-Only Mode)
+    /*
     PipelineTracker.updateProgress({
       step: "synthesizing_audio",
       stepName: "Thuyết Minh AI (TTS)",
@@ -243,8 +244,10 @@ export async function runWorkflow(): Promise<void> {
         logger.warn(`Failed to synthesize TTS for slide ${indexStr}. Skipping voice track.`, "WORKFLOW");
       }
     }
+    */
 
-    // 10. Compile Video with FFmpeg (using Synchronized Audio Mode)
+    // 10. Compile Video with FFmpeg (Commented out in Image-Only Mode)
+    /*
     PipelineTracker.updateProgress({
       step: "rendering_video",
       stepName: "Đóng Gói Video",
@@ -278,44 +281,29 @@ export async function runWorkflow(): Promise<void> {
       slideDurationSeconds: 5,
       audioTracksDir
     });
+    */
 
-    // 11. Upload Dedicated News Release Folder to Google Drive (Video + Slides)
+    // 11. Upload Dedicated News Release Folder to Google Drive (Slides Only)
     PipelineTracker.updateProgress({
       step: "uploading_drive",
       stepName: "Đồng Bộ Cloud S3/Drive",
-      percentage: 90,
-      message: "Đang tải video bản tin lên thư mục Google Drive bảo mật..."
+      percentage: 85,
+      message: "Đang tải slide ảnh bản tin lên thư mục Google Drive bảo mật..."
     });
 
     const vnNow = getVietnamTime();
     const timeStr = `${String(vnNow.getHours()).padStart(2, "0")}h${String(vnNow.getMinutes()).padStart(2, "0")}`;
     const driveFolderName = `Bản Tin Sáng ${todayStr} - ${timeStr}`;
-    const driveFileName = `AI_Morning_News_${todayStr}_${timeStr}.mp4`;
     const uploadResult = await uploadNewsReleaseToGoogleDrive(
       driveFolderName,
-      outputVideoPath,
-      driveFileName,
+      "", // No video path in Image-Only Mode
+      "", // No video file name in Image-Only Mode
       outputDir
     );
 
-    // 12. Automatically Post Video to TikTok
-    PipelineTracker.updateProgress({
-      step: "posting_tiktok",
-      stepName: "Tự Động Đăng TikTok",
-      percentage: 95,
-      message: "Đang đẩy video trực tiếp lên kênh TikTok thông qua API..."
-    });
-
-    const tiktokCaption = `Bản Tin Hôm Nay ${todayStr} 📰🔥 #news #tintuc #whatnew #todaynews`;
-    let tiktokPublishId = "SKIPPED";
-    let tiktokUrl = "N/A";
-    try {
-      const tiktokResult = await postVideoToTikTok(outputVideoPath, tiktokCaption);
-      tiktokPublishId = tiktokResult.publishId;
-      tiktokUrl = tiktokResult.shareUrl || "N/A";
-    } catch (tiktokErr) {
-      logger.error("Non-critical error during TikTok publication. Pipeline will continue.", tiktokErr, "WORKFLOW");
-    }
+    // 12. Automatically Post Video to TikTok (Commented out in Image-Only Mode)
+    const tiktokPublishId = "SKIPPED_IMAGE_ONLY";
+    const tiktokUrl = "N/A";
 
     // 13. Update video compilation and render logs in Database
     const metadata = {
@@ -341,10 +329,7 @@ export async function runWorkflow(): Promise<void> {
     const durationMin = ((Date.now() - startTime) / 60000).toFixed(2);
     logger.info("==================================================", "WORKFLOW");
     logger.success(`PIPELINE EXECUTED SUCCESSFULLY IN ${durationMin} MINUTES!`, "WORKFLOW");
-    logger.success(`Compiled Video: ${outputVideoPath}`, "WORKFLOW");
     logger.success(`Google Drive URL: ${uploadResult.webViewUrl}`, "WORKFLOW");
-    logger.success(`TikTok Publish ID: ${tiktokPublishId}`, "WORKFLOW");
-    logger.success(`TikTok Video URL: ${tiktokUrl}`, "WORKFLOW");
     logger.info("==================================================", "WORKFLOW");
 
     // Success final progress update
@@ -353,7 +338,7 @@ export async function runWorkflow(): Promise<void> {
       step: "idle",
       stepName: "Hệ thống đang chờ",
       percentage: 100,
-      message: `Bản tin "${videoTitle}" đã được sinh và xuất bản thành công sau ${durationMin} phút!`
+      message: `Bản tin "${videoTitle}" (chỉ sinh ảnh) đã được xuất bản thành công sau ${durationMin} phút!`
     });
 
   } catch (error: any) {

@@ -126,10 +126,6 @@ export async function uploadNewsReleaseToGoogleDrive(
   }
 
   try {
-    if (!fs.existsSync(localVideoPath)) {
-      throw new Error(`Local video file not found for upload: ${localVideoPath}`);
-    }
-
     // 1. Authenticate with Google Drive
     let auth: any;
     const scopes = ["https://www.googleapis.com/auth/drive"];
@@ -185,22 +181,26 @@ export async function uploadNewsReleaseToGoogleDrive(
       logger.warn(`Could not set public permissions on folder: ${folderId}`, "STORAGE-DRIVE");
     }
 
-    // 3. Upload Video
-    logger.info(`Uploading video to Drive folder: ${videoFileName}`, "STORAGE-DRIVE");
-    const videoMetadata = {
-      name: videoFileName,
-      parents: [folderId]
-    };
-    const videoMedia = {
-      mimeType: "video/mp4",
-      body: fs.createReadStream(localVideoPath)
-    };
-    await drive.files.create({
-      requestBody: videoMetadata,
-      media: videoMedia,
-      fields: "id"
-    });
-    logger.success("Video uploaded successfully.", "STORAGE-DRIVE");
+    // 3. Upload Video (Optional)
+    if (localVideoPath && fs.existsSync(localVideoPath)) {
+      logger.info(`Uploading video to Drive folder: ${videoFileName}`, "STORAGE-DRIVE");
+      const videoMetadata = {
+        name: videoFileName,
+        parents: [folderId]
+      };
+      const videoMedia = {
+        mimeType: "video/mp4",
+        body: fs.createReadStream(localVideoPath)
+      };
+      await drive.files.create({
+        requestBody: videoMetadata,
+        media: videoMedia,
+        fields: "id"
+      });
+      logger.success("Video uploaded successfully.", "STORAGE-DRIVE");
+    } else {
+      logger.info("No local video file found. Skipping video upload.", "STORAGE-DRIVE");
+    }
 
     // 4. Upload Slide PNGs
     if (fs.existsSync(localSlidesDir)) {
