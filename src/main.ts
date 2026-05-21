@@ -108,7 +108,7 @@ export async function runWorkflow(): Promise<void> {
     logger.info(`Sport source IDs: [${[...sportSourceIds].join(", ")}]`, "WORKFLOW");
 
     // ─── 2. Normalize, Save, Deduplicate ─────────────────────────────────────
-    const normalizedRaw = normalizeRawNews(rawItems);
+    const normalizedRaw = await normalizeRawNews(rawItems);
     logger.info("Saving parsed raw articles to database...", "WORKFLOW");
     const savedArticles = await NewsArticleRepository.saveArticles(normalizedRaw);
 
@@ -392,7 +392,7 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 15, message: "Đang tải tin RSS..." });
     const rawItems = await fetchRssFeeds(sources);
-    const normalizedRaw = normalizeRawNews(rawItems);
+    const normalizedRaw = await normalizeRawNews(rawItems);
     const savedArticles = await NewsArticleRepository.saveArticles(normalizedRaw);
 
     const sourceMap: Record<string, string> = {};

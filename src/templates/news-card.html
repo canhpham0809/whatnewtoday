@@ -764,17 +764,23 @@
 
         // Insert or update datetime badge below title
         try {
-          // data.date is already VN time string "DD/MM/YYYY - HH:MM" (from getVietnamTime())
-          // Do NOT apply toVN() again — that would double the UTC+7 offset
+          // data.date is already VN time string "DD/MM/YYYY - HH:MM" (from getVietnamTime()) or "HH:MM - Day, DD/MM/YYYY"
+          // Do NOT apply toVN() again — that would double the UTC+7 offset or cause invalid parsing bugs
           const vnDays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
           let hh, mm, dd, mo, yy, dayName;
-          const vm = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
-          if (vm) {
-            dd = (vm[1] || '01').padStart(2, '0'); mo = (vm[2] || '01').padStart(2, '0'); yy = vm[3];
-            hh = (vm[4] || '0').padStart(2, '0'); mm = (vm[5] || '00');
+          const vm_gold = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          const vm_news = (typeof data.date === 'string') && data.date.match(/^(\d{2}):(\d{2})\s*-\s*[^,]+,\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+
+          if (vm_news) {
+            hh = vm_news[1]; mm = vm_news[2];
+            dd = vm_news[3].padStart(2, '0'); mo = vm_news[4].padStart(2, '0'); yy = vm_news[5];
+            dayName = vnDays[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
+          } else if (vm_gold) {
+            dd = (vm_gold[1] || '01').padStart(2, '0'); mo = (vm_gold[2] || '01').padStart(2, '0'); yy = vm_gold[3];
+            hh = (vm_gold[4] || '0').padStart(2, '0'); mm = (vm_gold[5] || '00');
             dayName = vnDays[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
           } else {
-            const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
+            const now = toVN(new Date());
             hh = String(now.getUTCHours()).padStart(2, '0'); mm = String(now.getUTCMinutes()).padStart(2, '0');
             dd = String(now.getUTCDate()).padStart(2, '0'); mo = String(now.getUTCMonth() + 1).padStart(2, '0');
             yy = String(now.getUTCFullYear()); dayName = vnDays[now.getUTCDay()];
@@ -891,8 +897,19 @@
         const isBanTin = coverCat === 'BẢN TIN SÁNG' || coverCat === 'BẢN TIN' || coverCat === 'BÌA' || coverCat === 'COVER';
         let displayCat = coverCat;
         if (isBanTin) {
-          const vnNow = toVN(data.date ? parseCustomDate(data.date) : new Date());
-          displayCat = getBanTinLabel(vnNow.getUTCHours());
+          let vnHour = 7; // Default
+          const vm_news = (typeof data.date === 'string') && data.date.match(/^(\d{2}):(\d{2})\s*-\s*[^,]+,\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          const vm_gold = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          
+          if (vm_news) {
+            vnHour = parseInt(vm_news[1], 10);
+          } else if (vm_gold && vm_gold[4]) {
+            vnHour = parseInt(vm_gold[4], 10);
+          } else {
+            const vnNow = toVN(new Date());
+            vnHour = vnNow.getUTCHours();
+          }
+          displayCat = getBanTinLabel(vnHour);
         }
         const colorSet = COVER_COLORS[displayCat] || COVER_COLORS['BẢN TIN SÁNG'];
         categoryTag.innerText = displayCat;
@@ -930,13 +947,19 @@
           // Parse strings directly to avoid double UTC+7 offset
           const vnDays2 = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
           let hh, mm, dd, mo, yy, dayName;
-          const vm2 = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
-          if (vm2) {
-            dd = (vm2[1] || '01').padStart(2, '0'); mo = (vm2[2] || '01').padStart(2, '0'); yy = vm2[3];
-            hh = (vm2[4] || '0').padStart(2, '0'); mm = (vm2[5] || '00');
+          const vm_gold = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          const vm_news = (typeof data.date === 'string') && data.date.match(/^(\d{2}):(\d{2})\s*-\s*[^,]+,\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+
+          if (vm_news) {
+            hh = vm_news[1]; mm = vm_news[2];
+            dd = vm_news[3].padStart(2, '0'); mo = vm_news[4].padStart(2, '0'); yy = vm_news[5];
+            dayName = vnDays2[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
+          } else if (vm_gold) {
+            dd = (vm_gold[1] || '01').padStart(2, '0'); mo = (vm_gold[2] || '01').padStart(2, '0'); yy = vm_gold[3];
+            hh = (vm_gold[4] || '0').padStart(2, '0'); mm = (vm_gold[5] || '00');
             dayName = vnDays2[new Date(parseInt(yy), parseInt(mo) - 1, parseInt(dd)).getDay()];
           } else {
-            const now = toVN(data.date ? parseCustomDate(data.date) : new Date());
+            const now = toVN(new Date());
             hh = String(now.getUTCHours()).padStart(2, '0'); mm = String(now.getUTCMinutes()).padStart(2, '0');
             dd = String(now.getUTCDate()).padStart(2, '0'); mo = String(now.getUTCMonth() + 1).padStart(2, '0');
             yy = String(now.getUTCFullYear()); dayName = vnDays2[now.getUTCDay()];

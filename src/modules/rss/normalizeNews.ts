@@ -43,6 +43,13 @@ export function upgradeImageUrl(url: string): string {
 
   try {
     const u = new URL(url);
+    
+    // Nếu URL có chứa chữ ký xác thực (CDN signature), việc thay đổi kích thước/tên file 
+    // hay xóa query params sẽ làm sai lệch chữ ký dẫn đến lỗi 401 Unauthorized.
+    if (u.searchParams.has("s") || u.searchParams.has("sig") || u.searchParams.has("signature")) {
+      return url;
+    }
+
     const host = u.hostname; // e.g. "thethao247.vn"
 
     // ── thethao247.vn / cdn-img.thethao247.vn ────────────────────────────────
@@ -94,11 +101,33 @@ export function upgradeImageUrl(url: string): string {
 }
 
 
+export async function fetchOgImage(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    const metaTagMatch = html.match(/<meta[^>]+(?:property|name)=["']og:image["'][^>]*>/i);
+    if (!metaTagMatch) return "";
+    const contentMatch = metaTagMatch[0].match(/content=["']([^"']+)["']/i);
+    if (contentMatch && contentMatch[1]) {
+      return upgradeImageUrl(contentMatch[1]);
+    }
+  } catch (err) {
+    logger.debug(`fetchOgImage failed for ${url}: ${err}`, "RSS-NORMALIZE");
+  }
+  return "";
+}
+
 /**
  * Normalizes raw RSS feed items into unified NewsArticle entities.
  * Filters out items missing critical fields like Title or URL.
  */
-export function normalizeRawNews(rawItems: RawRssItem[]): Omit<NewsArticle, "id">[] {
+export async function normalizeRawNews(rawItems: RawRssItem[]): Promise<Omit<NewsArticle, "id">[]> {
   logger.info(`Starting normalization for ${rawItems.length} raw articles...`, "RSS-NORMALIZE");
   
   const normalizedList: Omit<NewsArticle, "id">[] = [];
@@ -110,7 +139,7 @@ export function normalizeRawNews(rawItems: RawRssItem[]): Omit<NewsArticle, "id"
     }
     
     // Extract thumbnail URL before stripping tags!
-    const thumbnailUrl = extractThumbnailUrl(item.content || item.contentSnippet || "");
+    let thumbnailUrl = extractThumbnailUrl(item.content || item.contentSnippet || "");
     
     // Clean Description & Content
     const cleanDesc = stripHtmlTags(item.contentSnippet || item.content || "");
@@ -132,6 +161,20 @@ export function normalizeRawNews(rawItems: RawRssItem[]): Omit<NewsArticle, "id"
       summary: "",
       thumbnail_url: thumbnailUrl
     });
+  }
+  
+  // Fallback: Fetch missing thumbnails concurrently
+  const missingThumbItems = normalizedList.filter(item => !item.thumbnail_url);
+  if (missingThumbItems.length > 0) {
+    logger.info(`Fetching og:image for ${missingThumbItems.length} items with missing thumbnails...`, "RSS-NORMALIZE");
+    const fetchPromises = missingThumbItems.map(async (item) => {
+      const ogImage = await fetchOgImage(item.url);
+      if (ogImage) {
+        item.thumbnail_url = ogImage;
+      }
+    });
+    // Wait for all missing thumbnails to be processed (in parallel)
+    await Promise.allSettled(fetchPromises);
   }
   
   logger.success(`Normalization complete. Generated ${normalizedList.length} unified articles.`, "RSS-NORMALIZE");
