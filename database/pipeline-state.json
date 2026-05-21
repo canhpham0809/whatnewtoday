@@ -1,53 +1,54 @@
 {
-  "jobId": "job_1779331855099",
+  "jobId": "job_1779356915535",
   "step": "idle",
   "stepName": "Hệ thống đang chờ",
   "percentage": 100,
   "status": "completed",
-  "message": "✅ Hoàn tất Giá Vàng sau 0.8 phút!",
-  "lastUpdated": "2026-05-21T02:51:45.850Z",
+  "message": "Đã hoàn tất tổng hợp \"Bản Tin Sáng 21-05-2026\" (6 chủ đề) sau 9.83 phút!",
+  "lastUpdated": "2026-05-21T09:58:25.610Z",
   "topics": {
     "general": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 21,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1fe9CqVGHf-mPsnqVoHdbFaCigdE1b4V-"
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     },
     "sports": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/13s6x_2jnpZ2Fv113aGa6YLrHK4pctP4s"
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     },
     "politics": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1pvUY06plfx1ObjNsUcbotd6nwPoU_C01"
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     },
     "society": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1O_tbEstwzUCMGWseg1_CxxeDtwyETU5P"
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     },
     "entertainment": {
       "status": "completed",
       "percentage": 100,
-      "slideCount": 11,
+      "slideCount": 10,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1kAtFjz6Pw46356ZX8rP3iVwoe3fTmiR1"
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     },
     "gold": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 6,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1ssgyRLxmCE2Ua8_kg9FDNvENo6TShgr6"
+      "message": "Đang upload giá vàng lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1zX7VU1JmwgCwiDwpovJAw5OrELuiTkHx"
     }
-  }
+  },
+  "videoTitle": "Bản Tin Sáng 21-05-2026"
 }

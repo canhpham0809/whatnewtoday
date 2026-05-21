@@ -566,7 +566,14 @@ export async function fetchGoldNewsArticles(limit: number = 5): Promise<NewsArti
     // Sort by pub_date descending
     validArticles.sort((a, b) => b.pub_date.getTime() - a.pub_date.getTime());
     
-    return validArticles.slice(0, limit) as NewsArticle[];
+    // Take the top 25 recent articles, shuffle them to add variety, and return the requested limit
+    const recentArticles = validArticles.slice(0, 25);
+    for (let i = recentArticles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [recentArticles[i], recentArticles[j]] = [recentArticles[j], recentArticles[i]];
+    }
+    
+    return recentArticles.slice(0, limit) as NewsArticle[];
   } catch (err) {
     logger.error("Failed to fetch gold news articles", err, "GOLD-PRICE");
     return [];

@@ -2,11 +2,11 @@
   {
     "store": "Vàng Thế Giới",
     "storeEn": "world",
-    "worldUSD": "$4,532.26",
-    "worldVND": "118,387,163",
+    "worldUSD": "$4,532.86",
+    "worldVND": "118,402,836",
     "worldRateBuy": "26,121",
     "worldRateSell": "26,391",
-    "worldChange": "+1.48",
+    "worldChange": "-7.18",
     "worldRateChangeBuy": "-",
     "worldRateChangeSell": "-"
   },
@@ -64,7 +64,7 @@
       "changeSell": "-"
     },
     "vang998": {
-      "buy": "15,780",
+      "buy": "15,720",
       "sell": "16,120",
       "changeBuy": "-",
       "changeSell": "-"

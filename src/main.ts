@@ -83,6 +83,12 @@ export async function runWorkflow(): Promise<void> {
   let videoTitle = "Bản Tin Sáng";
 
   try {
+    // ─── 0. Database Maintenance ──────────────────────────────────────────────
+    logger.info("Running database cleanup routines...", "WORKFLOW");
+    await NewsArticleRepository.cleanupOldArticles(7); // Keep articles for 7 days
+    await VideoHistoryRepository.cleanupOldRecords(30); // Keep video history for 30 days
+    await RenderJobRepository.cleanupOldJobs(7); // Keep render jobs for 7 days
+
     // ─── 1. Fetch RSS Feeds ───────────────────────────────────────────────────
     const sources = await RssSourceRepository.getActiveSources();
     if (sources.length === 0) {
@@ -96,16 +102,22 @@ export async function runWorkflow(): Promise<void> {
       return;
     }
 
-    // Build source lookup maps for AI ranking context
+    // Build source lookup maps and strict topic categorization
     const sourceMap: Record<string, string> = {};
-    const sportSourceIds = new Set<string>();
+    const topicSourceIds: Record<string, Set<string>> = {};
+    for (const t of TOPICS) {
+      topicSourceIds[t.key] = new Set();
+    }
+
     for (const src of sources) {
       sourceMap[src.id] = src.name;
-      if (src.category === "Thể Thao") {
-        sportSourceIds.add(src.id);
+      const cat = (src.category || "").toLowerCase().trim();
+      
+      const matchedTopic = TOPICS.find(t => t.labelVi.toLowerCase() === cat);
+      if (matchedTopic) {
+        topicSourceIds[matchedTopic.key].add(src.id);
       }
     }
-    logger.info(`Sport source IDs: [${[...sportSourceIds].join(", ")}]`, "WORKFLOW");
 
     // ─── 2. Normalize, Save, Deduplicate ─────────────────────────────────────
     const normalizedRaw = await normalizeRawNews(rawItems);
@@ -226,14 +238,14 @@ export async function runWorkflow(): Promise<void> {
       try {
         const filteredPreScored = preScored.filter((art) => !generalArticleIds.has(art.id));
 
-        // For Sports topic: boost articles from dedicated sports sources to the top of the pool
-        // so they are never accidentally cut off by the 100-article slice in rankNewsByCategory
         let poolForRanking = filteredPreScored;
-        if (topic.key === "sports" && sportSourceIds.size > 0) {
-          const sportArticles   = filteredPreScored.filter(a => a.source_id && sportSourceIds.has(a.source_id));
-          const otherArticles   = filteredPreScored.filter(a => !a.source_id || !sportSourceIds.has(a.source_id));
-          poolForRanking = [...sportArticles, ...otherArticles];
-          logger.info(`[SPORTS] Pool: ${sportArticles.length} sport-source articles boosted to top (total pool: ${poolForRanking.length}).`, "WORKFLOW");
+        const strictSourceIds = topicSourceIds[topic.key];
+
+        if (strictSourceIds && strictSourceIds.size > 0) {
+          poolForRanking = filteredPreScored.filter(a => a.source_id && strictSourceIds.has(a.source_id));
+          logger.info(`[${topic.key.toUpperCase()}] Strict filtering applied. Found ${poolForRanking.length} articles from dedicated sources.`, "WORKFLOW");
+        } else {
+          logger.warn(`[${topic.key.toUpperCase()}] No strict sources found for category '${topic.labelVi}'. Passing all ${poolForRanking.length} articles to AI.`, "WORKFLOW");
         }
 
         const categoryRanked = await rankNewsByCategory(poolForRanking, topic.labelVi, topic.topN, sourceMap);
@@ -396,10 +408,19 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
     const savedArticles = await NewsArticleRepository.saveArticles(normalizedRaw);
 
     const sourceMap: Record<string, string> = {};
-    const sportSourceIds = new Set<string>();
+    const topicSourceIds: Record<string, Set<string>> = {};
+    for (const t of ALL_TOPIC_DEFS) {
+      topicSourceIds[t.key] = new Set();
+    }
+
     for (const src of sources) {
       sourceMap[src.id] = src.name;
-      if (src.category === "Thể Thao") sportSourceIds.add(src.id);
+      const cat = (src.category || "").toLowerCase().trim();
+      
+      const matchedTopic = ALL_TOPIC_DEFS.find(t => t.labelVi.toLowerCase() === cat);
+      if (matchedTopic) {
+        topicSourceIds[matchedTopic.key].add(src.id);
+      }
     }
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 25, message: "AI đang xếp hạng tin..." });
@@ -427,11 +448,13 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
       rankedArticles = await rankNewsArticles(preScored);
     } else {
       let pool = preScored;
-      if (topicKey === "sports" && sportSourceIds.size > 0) {
-        const sportArts = preScored.filter(a => a.source_id && sportSourceIds.has(a.source_id));
-        const otherArts = preScored.filter(a => !a.source_id || !sportSourceIds.has(a.source_id));
-        pool = [...sportArts, ...otherArts];
-        logger.info(`[SPORTS] Boosted ${sportArts.length} sport-source articles.`, "WORKFLOW");
+      const strictSourceIds = topicSourceIds[topicKey];
+
+      if (strictSourceIds && strictSourceIds.size > 0) {
+        pool = preScored.filter(a => a.source_id && strictSourceIds.has(a.source_id));
+        logger.info(`[${topicKey.toUpperCase()}] Strict filtering applied. Found ${pool.length} articles from dedicated sources.`, "WORKFLOW");
+      } else {
+        logger.warn(`[${topicKey.toUpperCase()}] No strict sources found for category '${topicDef.labelVi}'. Passing all ${pool.length} articles to AI.`, "WORKFLOW");
       }
       rankedArticles = await rankNewsByCategory(pool, topicDef.labelVi, topicDef.topN, sourceMap);
     }

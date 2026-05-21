@@ -243,6 +243,28 @@ export const NewsArticleRepository = {
     });
 
     await Promise.all(promises);
+  },
+
+  async cleanupOldArticles(daysToKeep = 7): Promise<void> {
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
+    
+    if (env.isSupabaseMock) {
+      logger.info(`Cleaning up articles older than ${daysToKeep} days in memory.`, "REPO-NEWS");
+      mockNewsArticles = mockNewsArticles.filter(a => new Date(a.created_at || a.pub_date) >= new Date(cutoffDate));
+      return;
+    }
+
+    logger.info(`Cleaning up articles older than ${daysToKeep} days in Supabase.`, "REPO-NEWS");
+    const { error } = await supabase!
+      .from("news_articles")
+      .delete()
+      .lt("created_at", cutoffDate);
+
+    if (error) {
+      logger.error("Error cleaning up old articles.", error, "REPO-NEWS");
+    } else {
+      logger.success("Old articles cleanup completed.", "REPO-NEWS");
+    }
   }
 };
 
@@ -340,6 +362,26 @@ export const VideoHistoryRepository = {
     if (error) {
       logger.error(`Error updating video compilation history ${id} in Supabase.`, error, "REPO-VIDEO");
     }
+  },
+
+  async cleanupOldRecords(daysToKeep = 30): Promise<void> {
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
+    
+    if (env.isSupabaseMock) {
+      logger.info(`Cleaning up video history older than ${daysToKeep} days in memory.`, "REPO-VIDEO");
+      // Optional: clean up mock array
+      return;
+    }
+
+    logger.info(`Cleaning up video history older than ${daysToKeep} days in Supabase.`, "REPO-VIDEO");
+    const { error } = await supabase!
+      .from("video_history")
+      .delete()
+      .lt("created_at", cutoffDate);
+
+    if (error) {
+      logger.error("Error cleaning up old video history.", error, "REPO-VIDEO");
+    }
   }
 };
 
@@ -422,6 +464,25 @@ export const RenderJobRepository = {
       .order("created_at", { ascending: false })
       .limit(limit);
     return error ? [] : data;
+  },
+
+  async cleanupOldJobs(daysToKeep = 7): Promise<void> {
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
+    
+    if (env.isSupabaseMock) {
+      logger.info(`Cleaning up render jobs older than ${daysToKeep} days in memory.`, "REPO-RENDER");
+      return;
+    }
+
+    logger.info(`Cleaning up render jobs older than ${daysToKeep} days in Supabase.`, "REPO-RENDER");
+    const { error } = await supabase!
+      .from("render_jobs")
+      .delete()
+      .lt("created_at", cutoffDate);
+
+    if (error) {
+      logger.error("Error cleaning up old render jobs.", error, "REPO-RENDER");
+    }
   }
 };
 
