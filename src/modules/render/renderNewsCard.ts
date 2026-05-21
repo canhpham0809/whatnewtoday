@@ -4,7 +4,7 @@ import fs from "fs";
 import { NewsArticle } from "../database/repositories";
 import { formatVietnameseDate } from "../../utils/date";
 import { logger } from "../../utils/logger";
-import { GoldStorePrice } from "../news/goldPrice";
+import { GoldStorePrice, fetchGoldNewsArticles } from "../news/goldPrice";
 
 export type CoverCategory = "BẢN TIN SÁNG" | "THỂ THAO" | "CHÍNH TRỊ" | "XÃ HỘI" | "GIẢI TRÍ" | "GIÁ VÀNG";
 
@@ -267,6 +267,8 @@ export async function renderGoldPriceSlides(
   logger.success(`Saved gold cover slide cover.png`, "RENDER-PNG");
   
   // Render one slide per store
+  const goldArticles = await fetchGoldNewsArticles(goldPrices.length);
+  
   for (let i = 0; i < goldPrices.length; i++) {
     const store = goldPrices[i];
     const padIndex = String(i + 1).padStart(2, "0");
@@ -277,14 +279,25 @@ export async function renderGoldPriceSlides(
     if (store.storeEn === "world") {
       // World gold: show USD price and the FX rate (VND/USD) buy/sell
       goldRows = [
-        { label: "Giá Quốc Tế (USD/oz)", buy: store.worldUSD || "N/A", sell: store.worldUSD || "N/A", changeBuy: store.worldChange || "", changeSell: store.worldChange || "" },
-        { label: "Quy đổi (VND/USD)", buy: (store as any).worldRateBuy || (store as any).worldVNDBuy || store.worldVND || "N/A", sell: (store as any).worldRateSell || (store as any).worldVNDSell || store.worldVND || "N/A", changeBuy: (store as any).worldRateChangeBuy || "", changeSell: (store as any).worldRateChangeSell || "" }
+        { label: "Quốc Tế", buy: store.worldUSD || "N/A", sell: store.worldRateSell || "N/A", changeBuy: store.worldChange || "", changeSell: store.worldRateChangeSell || "" },
       ];
     } else {
-      if (store.nhaN) goldRows.push({ label: "Vàng Nhẫn", buy: store.nhaN.buy, sell: store.nhaN.sell, changeBuy: store.nhaN.changeBuy, changeSell: store.nhaN.changeSell });
-      if (store.vang999) goldRows.push({ label: "Vàng 999 (24k)", buy: store.vang999.buy, sell: store.vang999.sell, changeBuy: store.vang999.changeBuy, changeSell: store.vang999.changeSell });
-      if (store.vang998) goldRows.push({ label: "Vàng 980 (23.5k)", buy: store.vang998.buy, sell: store.vang998.sell, changeBuy: store.vang998.changeBuy, changeSell: store.vang998.changeSell });
+      // Prioritize 999 gold (SJC/24k) as the main representative price for the store
+      const mainGold = store.vang999 && store.vang999.buy !== "N/A" ? store.vang999 : store.nhaN;
+      if (mainGold) {
+         goldRows = [
+           { label: store.store, buy: mainGold.buy, sell: mainGold.sell, changeBuy: mainGold.changeBuy, changeSell: mainGold.changeSell }
+         ];
+      }
     }
+    
+    // Assign a news article for the slide
+    const article = goldArticles[i % goldArticles.length] || null;
+    const newsData = article ? {
+      title: article.title,
+      summary: article.description || article.summary,
+      thumbnail: article.thumbnail_url
+    } : null;
     
     const cardData = {
       title: store.store,
@@ -296,11 +309,24 @@ export async function renderGoldPriceSlides(
       index: i + 1,
       total: goldPrices.length,
       thumbnail: "",
-      goldRows
+      goldRows,
+      newsData
     };
     
     logger.info(`Rendering gold slide ${i + 1}/${goldPrices.length}: ${store.store}`, "RENDER-PNG");
     await page.evaluate((data) => { (window as any).updateCardContent(data); }, cardData);
+    
+    if (newsData && newsData.thumbnail) {
+      try {
+        await page.waitForFunction(() => {
+          const img = document.getElementById("gold-news-thumb") as HTMLImageElement;
+          return img && img.complete && img.naturalWidth > 0;
+        }, undefined, { timeout: 6000 });
+      } catch (err) {
+        logger.warn(`News thumbnail failed to load within 6s for gold slide ${padIndex}: ${newsData.thumbnail}`, "RENDER-PNG");
+      }
+    }
+    
     await page.waitForTimeout(600);
     await page.screenshot({ path: imagePath, type: "png", fullPage: false });
     imagePaths.push(imagePath);

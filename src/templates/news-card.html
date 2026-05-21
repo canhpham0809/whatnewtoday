@@ -768,7 +768,7 @@
           // Do NOT apply toVN() again — that would double the UTC+7 offset or cause invalid parsing bugs
           const vnDays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
           let hh, mm, dd, mo, yy, dayName;
-          const vm_gold = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2}):(\d{2}))?/);
+          const vm_gold = (typeof data.date === 'string') && data.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*(?:-|,)?\s*(\d{1,2}):(\d{2}))?/);
           const vm_news = (typeof data.date === 'string') && data.date.match(/^(\d{2}):(\d{2})\s*-\s*[^,]+,\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
 
           if (vm_news) {
@@ -831,14 +831,24 @@
         summaryEl.style.color = '';
 
         const rows = data.goldRows || [];
+        const isWorld = data.storeName === "Vàng Thế Giới";
+        const headerBuy = isWorld ? "USD / oz" : "Mua Vào";
+        const headerSell = isWorld ? "" : "Bán Ra";
 
         let tableHtml = `<div class="gold-price-wrapper">`;
-        tableHtml += `
-          <div class="gold-table-header">
-            <span class="th-label">Loại Vàng</span>
-            <span class="th-buy">Mua Vào</span>
-            <span class="th-sell">Bán Ra</span>
-          </div>`;
+        
+        if (isWorld) {
+          tableHtml += `
+            <div class="gold-table-header" style="display: flex; justify-content: center; padding: 24px 70px;">
+              <span class="th-buy" style="text-align: center; min-width: auto; font-size: 24px; color: #34d399;">${headerBuy}</span>
+            </div>`;
+        } else {
+          tableHtml += `
+            <div class="gold-table-header" style="display: flex; justify-content: space-between; padding: 24px 70px;">
+              <span class="th-buy" style="text-align: left; min-width: auto; font-size: 24px; color: #34d399;">${headerBuy}</span>
+              <span class="th-sell" style="text-align: right; min-width: auto; font-size: 24px; color: #f87171;">${headerSell}</span>
+            </div>`;
+        }
 
         rows.forEach((row, idx) => {
           const rowClass = idx % 2 === 0 ? 'even' : 'odd';
@@ -846,33 +856,56 @@
           let cbHtml = '';
           if (row.changeBuy && row.changeBuy !== '-') {
             const isUp = row.changeBuy.startsWith('+');
-            cbHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${row.changeBuy}</span>`;
+            cbHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}" style="font-size: 22px;">${isUp ? '▲' : '▼'} ${row.changeBuy}</span>`;
           } else {
-            cbHtml = `<span class="gr-change flat">—</span>`;
+            cbHtml = `<span class="gr-change flat" style="font-size: 22px;">—</span>`;
           }
 
-          let csHtml = '';
-          if (row.changeSell && row.changeSell !== '-') {
-            const isUp = row.changeSell.startsWith('+');
-            csHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${row.changeSell}</span>`;
+          if (isWorld) {
+            tableHtml += `
+              <div class="gold-row ${rowClass}" style="display: flex; justify-content: center; padding: 40px 70px; border-top: 1px solid rgba(255,255,255,0.04);">
+                <div class="gr-price-cell" style="align-items: center;">
+                  <span class="gr-price buy" style="font-size: 64px; color: #fff;">${row.buy}</span>
+                  ${cbHtml}
+                </div>
+              </div>`;
           } else {
-            csHtml = `<span class="gr-change flat">—</span>`;
-          }
+            let csHtml = '';
+            if (row.changeSell && row.changeSell !== '-') {
+              const isUp = row.changeSell.startsWith('+');
+              csHtml = `<span class="gr-change ${isUp ? 'up' : 'down'}" style="font-size: 22px;">${isUp ? '▲' : '▼'} ${row.changeSell}</span>`;
+            } else {
+              csHtml = `<span class="gr-change flat" style="font-size: 22px;">—</span>`;
+            }
 
-          tableHtml += `
-            <div class="gold-row ${rowClass}">
-              <span class="gr-label">${row.label}</span>
-              <div class="gr-price-cell">
-                <span class="gr-price buy">${row.buy}</span>
-                ${cbHtml}
-              </div>
-              <div class="gr-price-cell">
-                <span class="gr-price sell">${row.sell}</span>
-                ${csHtml}
-              </div>
-            </div>`;
+            tableHtml += `
+              <div class="gold-row ${rowClass}" style="display: flex; justify-content: space-between; padding: 40px 70px; border-top: 1px solid rgba(255,255,255,0.04);">
+                <div class="gr-price-cell" style="align-items: flex-start;">
+                  <span class="gr-price buy" style="font-size: 56px;">${row.buy}</span>
+                  ${cbHtml}
+                </div>
+                <div class="gr-price-cell" style="align-items: flex-end;">
+                  <span class="gr-price sell" style="font-size: 56px;">${row.sell}</span>
+                  ${csHtml}
+                </div>
+              </div>`;
+          }
         });
         tableHtml += `</div>`;
+        
+        // Add news article below the table if available
+        if (data.newsData) {
+          tableHtml += `
+          <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 36px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="color: #ffd60a; font-size: 18px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">Tin Tức Liên Quan</span>
+              <h3 style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 32px; font-weight: 700; margin: 0; color: #fff; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${data.newsData.title}</h3>
+            </div>
+            <img id="gold-news-thumb" src="${data.newsData.thumbnail}" style="width: 100%; height: 280px; object-fit: cover; border-radius: 14px;" />
+            <p style="font-size: 24px; color: #aeb8c7; margin: 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${data.newsData.summary}</p>
+          </div>`;
+        }
+
         summaryEl.innerHTML = tableHtml;
       } else if (isCover) {
         container.style.justifyContent = 'flex-start';

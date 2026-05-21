@@ -1,18 +1,18 @@
 {
-  "jobId": "job_1779265696448",
+  "jobId": "job_1779331855099",
   "step": "idle",
   "stepName": "Hệ thống đang chờ",
   "percentage": 100,
   "status": "completed",
-  "message": "Đã hoàn tất tổng hợp \"Bản Tin Sáng 20-05-2026\" (6 chủ đề) sau 7.08 phút!",
-  "lastUpdated": "2026-05-20T08:35:21.391Z",
+  "message": "✅ Hoàn tất Giá Vàng sau 0.8 phút!",
+  "lastUpdated": "2026-05-21T02:51:45.850Z",
   "topics": {
     "general": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 21,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1rt6_zxSluFBFYgWO4S8Fy5oWgHV7VaQF"
+      "driveUrl": "https://drive.google.com/drive/folders/1fe9CqVGHf-mPsnqVoHdbFaCigdE1b4V-"
     },
     "sports": {
       "status": "completed",
@@ -46,9 +46,8 @@
       "status": "completed",
       "percentage": 100,
       "slideCount": 6,
-      "message": "Đang upload giá vàng lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/13FnkN_gtGsXoJRG0GDT314-wrplhAtAB"
+      "message": "Đang upload lên Google Drive...",
+      "driveUrl": "https://drive.google.com/drive/folders/1ssgyRLxmCE2Ua8_kg9FDNvENo6TShgr6"
     }
-  },
-  "videoTitle": "Bản Tin Sáng 20-05-2026"
+  }
 }

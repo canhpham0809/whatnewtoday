@@ -34,7 +34,7 @@ async function main() {
   const now = new Date();
   const dateOnly = now.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeOnly = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-  const dateStr = `${dateOnly} ${timeOnly}`; // dd/mm/yyyy HH:MM
+  const dateStr = `${dateOnly} - ${timeOnly}`; // dd/mm/yyyy - HH:MM
   const outputDir = path.resolve(process.cwd(), "output", "test_gold");
 
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });

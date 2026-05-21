@@ -2,6 +2,9 @@ import { chromium } from "playwright";
 import { logger } from "../../utils/logger";
 import fs from "fs";
 import path from "path";
+import { fetchRssFeeds } from "../rss/fetchRss";
+import { normalizeRawNews } from "../rss/normalizeNews";
+import { NewsArticle } from "../database/repositories";
 
 export interface GoldStorePrice {
   store: string;
@@ -74,6 +77,17 @@ export async function scrapeGoldPrices(): Promise<GoldStorePrice[]> {
 
   try {
     const page = await browser.newPage();
+    
+    // Block images, styles, and fonts to prevent crashes and speed up loading
+    await page.route("**/*", (route) => {
+      const type = route.request().resourceType();
+      if (["image", "stylesheet", "font", "media"].includes(type)) {
+        route.abort();
+      } else {
+        route.continue();
+      }
+    });
+
     await page.setExtraHTTPHeaders({
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
@@ -283,11 +297,13 @@ export async function scrapeGoldPrices(): Promise<GoldStorePrice[]> {
 
           if (isMaterial) continue;
 
-          if (
+          if (label === "pnj" || label === "sjc") {
+            if (res.vang999.buy === "N/A") res.vang999 = { buy, sell };
+          } else if (
             label.includes("nhẫn trơn pnj") ||
             label.includes("nhẫn pnj")
           ) {
-            res.nhaN = { buy, sell };
+            if (res.nhaN.buy === "N/A") res.nhaN = { buy, sell };
           } else if (
             label === "vàng nữ trang 99" ||
             label.includes("nữ trang 99%") ||
@@ -363,11 +379,11 @@ export async function scrapeGoldPrices(): Promise<GoldStorePrice[]> {
           }
           
           if (label.includes("nhẫn tròn trơn")) {
-            res.nhaN = { buy, sell };
-          } else if (label.includes("vàng rồng thăng long 99.9")) {
-            res.vang998 = { buy, sell };
-          } else if (label.includes("vàng miếng 999.9") || label.includes("vàng rồng thăng long 999.9")) {
-            res.vang999 = { buy, sell };
+            if (res.nhaN.buy === "N/A") res.nhaN = { buy, sell };
+          } else if (label.includes("vàng rồng thăng long 99.9") && !label.includes("999.9")) {
+            if (res.vang998.buy === "N/A") res.vang998 = { buy, sell };
+          } else if (label.includes("vàng miếng 999.9") || label.includes("vàng rồng thăng long 999.9") || label.includes("vàng 999.9")) {
+            if (res.vang999.buy === "N/A") res.vang999 = { buy, sell };
           }
         }
         return res;
@@ -426,12 +442,14 @@ export async function scrapeGoldPrices(): Promise<GoldStorePrice[]> {
             continue;
           }
           
-          if (label.includes("vàng 99,9%")) {
-            res.nhaN = { buy, sell };
-          } else if (label.includes("9t8")) {
-            res.vang998 = { buy, sell };
+          if (label === "mi hồng" || label === "sjc") {
+            if (res.vang999.buy === "N/A") res.vang999 = { buy, sell };
+          } else if (label.includes("vàng 99,9%") || label.includes("vàng 999")) {
+            if (res.nhaN.buy === "N/A") res.nhaN = { buy, sell };
+          } else if (label.includes("9t8") || label.includes("vàng 98")) {
+            if (res.vang998.buy === "N/A") res.vang998 = { buy, sell };
           } else if (label.includes("sjc")) {
-            res.vang999 = { buy, sell };
+            if (res.vang999.buy === "N/A") res.vang999 = { buy, sell };
           }
         }
         return res;
@@ -513,4 +531,44 @@ export async function scrapeGoldPrices(): Promise<GoldStorePrice[]> {
 
   logger.success(`Gold price scraping complete. Collected data from ${results.length} stores.`, "GOLD-PRICE");
   return results;
+}
+
+/**
+ * Fetches recent news articles specifically about gold prices.
+ */
+export async function fetchGoldNewsArticles(limit: number = 5): Promise<NewsArticle[]> {
+  logger.info("Fetching recent gold news articles...", "GOLD-PRICE");
+  try {
+    const sources = [
+      { id: "gold-vnexpress", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
+      { id: "gold-thanhnien", name: "Thanh Niên Kinh Tế", url: "https://thanhnien.vn/rss/kinh-te.rss", category: "Gold", active: true },
+      { id: "gold-tuoitre", name: "Tuổi Trẻ Kinh Doanh", url: "https://tuoitre.vn/rss/kinh-doanh.rss", category: "Gold", active: true }
+    ];
+    
+    const rawItems = await fetchRssFeeds(sources);
+    const normalizedRaw = await normalizeRawNews(rawItems);
+    
+    // Filter articles related to gold
+    const goldArticles = normalizedRaw.filter(a => {
+      const titleLower = (a.title || "").toLowerCase();
+      const descLower = (a.description || "").toLowerCase();
+      return titleLower.includes("vàng") || descLower.includes("vàng") || titleLower.includes("sjc") || descLower.includes("sjc");
+    });
+    
+    // Ensure thumbnails exist and are not base64 placeholders
+    const validArticles = goldArticles.filter(a => 
+      a.thumbnail_url && 
+      a.thumbnail_url.trim() !== "" && 
+      a.thumbnail_url !== "NONE" &&
+      !a.thumbnail_url.startsWith("data:image/")
+    );
+    
+    // Sort by pub_date descending
+    validArticles.sort((a, b) => b.pub_date.getTime() - a.pub_date.getTime());
+    
+    return validArticles.slice(0, limit) as NewsArticle[];
+  } catch (err) {
+    logger.error("Failed to fetch gold news articles", err, "GOLD-PRICE");
+    return [];
+  }
 }
