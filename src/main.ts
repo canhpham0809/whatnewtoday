@@ -312,7 +312,6 @@ export async function runWorkflow(): Promise<void> {
       const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir, rootDriveFolder.folderId);
       PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: 6, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
-      } // END SKIPPED
     } catch (err: any) {
       logger.error("[GOLD] Gold price pipeline failed.", err, "WORKFLOW");
       PipelineTracker.updateTopicProgress("gold", { status: "failed", error: err.message });
