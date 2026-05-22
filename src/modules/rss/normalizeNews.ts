@@ -3,23 +3,36 @@ import { NewsArticle } from "../database/repositories";
 import { parseRssDate } from "../../utils/date";
 import { logger } from "../../utils/logger";
 
+const ENTITY_MAP: Record<string, string> = {
+  "&nbsp;": " ", "&quot;": '"', "&amp;": "&", "&lt;": "<", "&gt;": ">",
+  "&lsquo;": "'", "&rsquo;": "'", "&ldquo;": '"', "&rdquo;": '"', 
+  "&ndash;": "-", "&mdash;": "-",
+  "&aacute;": "á", "&agrave;": "à", "&atilde;": "ã", "&acirc;": "â", "&ecirc;": "ê", 
+  "&iacute;": "í", "&igrave;": "ì", "&oacute;": "ó", "&ograve;": "ò", "&ocirc;": "ô", 
+  "&otilde;": "õ", "&uacute;": "ú", "&ugrave;": "ù", "&yacute;": "ý", "&eacute;": "é", "&egrave;": "è",
+  "&Aacute;": "Á", "&Agrave;": "À", "&Atilde;": "Ã", "&Acirc;": "Â", "&Ecirc;": "Ê", 
+  "&Iacute;": "Í", "&Igrave;": "Ì", "&Oacute;": "Ó", "&Ograve;": "Ò", "&Ocirc;": "Ô", 
+  "&Otilde;": "Õ", "&Uacute;": "Ú", "&Ugrave;": "Ù", "&Yacute;": "Ý", "&Eacute;": "É", "&Egrave;": "È"
+};
+
 /**
- * Strips HTML tags from a text string.
+ * Strips HTML tags from a text string and decodes HTML entities.
  */
 export function stripHtmlTags(htmlStr?: string): string {
   if (!htmlStr) return "";
   // Strip tags like <img ... />, <br />, <a>...</a>
   let clean = htmlStr.replace(/<\/?[^>]+(>|$)/g, "");
-  // Replace HTML entity representations (like &nbsp;, &quot;, &amp;, etc.)
-  clean = clean
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+  
+  // Replace mapped entities
+  clean = clean.replace(/&[a-zA-Z]+;/g, (match) => ENTITY_MAP[match] || match);
+  
+  // Replace numeric entities like &#039; or &#39;
+  clean = clean.replace(/&#(\d+);/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  });
+  
+  // Clean up extra whitespace
+  clean = clean.replace(/\s+/g, " ").trim();
     
   return clean;
 }

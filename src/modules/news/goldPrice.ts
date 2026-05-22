@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fetchRssFeeds } from "../rss/fetchRss";
 import { normalizeRawNews } from "../rss/normalizeNews";
-import { NewsArticle } from "../database/repositories";
+import { NewsArticle, NewsArticleRepository } from "../database/repositories";
 
 export interface GoldStorePrice {
   store: string;
@@ -540,33 +540,87 @@ export async function fetchGoldNewsArticles(limit: number = 5): Promise<NewsArti
   logger.info("Fetching recent gold news articles...", "GOLD-PRICE");
   try {
     const sources = [
-      { id: "gold-vnexpress", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
-      { id: "gold-thanhnien", name: "Thanh Niên Kinh Tế", url: "https://thanhnien.vn/rss/kinh-te.rss", category: "Gold", active: true },
-      { id: "gold-tuoitre", name: "Tuổi Trẻ Kinh Doanh", url: "https://tuoitre.vn/rss/kinh-doanh.rss", category: "Gold", active: true }
+      { id: "10000000-0000-0000-0000-000000000001", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
+      { id: "20000000-0000-0000-0000-000000000002", name: "24h Giá Vàng", url: "https://www.24h.com.vn/upload/rss/taichinh.rss", category: "Gold", active: true }
     ];
     
     const rawItems = await fetchRssFeeds(sources);
     const normalizedRaw = await normalizeRawNews(rawItems);
     
+    await NewsArticleRepository.saveArticles(normalizedRaw);
+    
+    let candidates: NewsArticle[] = [];
+    const { supabase } = await import("../database/supabaseClient");
+    if (supabase) {
+      const { data, error } = await supabase.from("news_articles")
+        .select("*")
+        .in("source_id", sources.map(s => s.id))
+        .order("pub_date", { ascending: false })
+        .limit(30);
+      if (!error && data) {
+        candidates = data.map((d: any) => ({
+          ...d,
+          pub_date: new Date(d.pub_date),
+          created_at: new Date(d.created_at)
+        }));
+      }
+    }
+    
+    if (candidates.length === 0) {
+      candidates = normalizedRaw;
+    } else {
+      candidates = candidates.map(c => {
+        if (!c.thumbnail_url || c.thumbnail_url.trim() === "") {
+          const orig = normalizedRaw.find(s => s.url === c.url);
+          return { ...c, thumbnail_url: orig ? orig.thumbnail_url : "" };
+        }
+        return c;
+      });
+    }
+    
     // Filter articles related to gold
-    const goldArticles = normalizedRaw.filter(a => {
+    const goldArticles = candidates.filter(a => {
       const titleLower = (a.title || "").toLowerCase();
       const descLower = (a.description || "").toLowerCase();
       return titleLower.includes("vàng") || descLower.includes("vàng") || titleLower.includes("sjc") || descLower.includes("sjc");
     });
     
     // Ensure thumbnails exist and are not base64 placeholders
-    const validArticles = goldArticles.filter(a => 
+    let validArticles = goldArticles.filter(a => 
       a.thumbnail_url && 
       a.thumbnail_url.trim() !== "" && 
       a.thumbnail_url !== "NONE" &&
       !a.thumbnail_url.startsWith("data:image/")
     );
     
+    if (validArticles.length < limit) {
+      const otherValid = candidates.filter(a => 
+        !goldArticles.some(ga => ga.id === a.id) &&
+        a.thumbnail_url && 
+        a.thumbnail_url.trim() !== "" && 
+        a.thumbnail_url !== "NONE" &&
+        !a.thumbnail_url.startsWith("data:image/")
+      );
+      validArticles = [...validArticles, ...otherValid];
+    }
+    
     // Sort by pub_date descending
     validArticles.sort((a, b) => b.pub_date.getTime() - a.pub_date.getTime());
     
-    return validArticles.slice(0, limit) as NewsArticle[];
+    const selectedArticles = validArticles.slice(0, limit) as NewsArticle[];
+    
+    // Mark them as used (is_ranked = true) so they don't appear next time
+    if (selectedArticles.length > 0) {
+      const dbUpdates = selectedArticles.map(art => ({
+        id: art.id,
+        score: art.score || 0,
+        is_ranked: true,
+        summary: art.summary || ""
+      }));
+      await NewsArticleRepository.updateArticleSummariesAndRankings(dbUpdates);
+    }
+    
+    return selectedArticles;
   } catch (err) {
     logger.error("Failed to fetch gold news articles", err, "GOLD-PRICE");
     return [];

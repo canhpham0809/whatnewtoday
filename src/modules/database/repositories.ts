@@ -49,11 +49,18 @@ export interface RenderJob {
 
 // In-Memory Fallback Database
 const mockRssSources: RssSource[] = [
-  { id: "11111111-1111-1111-1111-111111111111", name: "VnExpress Tin Nổi Bật", url: "https://vnexpress.net/rss/tin-noi-bat.rss", category: "Featured", active: true },
-  { id: "22222222-2222-2222-2222-222222222222", name: "VnExpress Thế Giới", url: "https://vnexpress.net/rss/the-gioi.rss", category: "World", active: true },
-  { id: "33333333-3333-3333-3333-333333333333", name: "VnExpress Thời Sự", url: "https://vnexpress.net/rss/thoi-su.rss", category: "Current Affairs", active: true },
-  { id: "44444444-4444-4444-4444-444444444444", name: "Tuổi Trẻ Mới Nhất", url: "https://tuoitre.vn/rss/tin-moi-nhat.rss", category: "Featured", active: true },
-  { id: "55555555-5555-5555-5555-555555555555", name: "Thanh Niên Nóng", url: "https://thanhnien.vn/rss/home.rss", category: "Featured", active: true }
+  { id: "11111111-1111-1111-1111-111111111111", name: "VnExpress Tin Mới Nhất", url: "https://vnexpress.net/rss/tin-moi-nhat.rss", category: "Featured", active: true },
+  { id: "22222222-2222-2222-2222-222222222222", name: "VnExpress Thời Sự", url: "https://vnexpress.net/rss/thoi-su.rss", category: "Current Affairs", active: true },
+  { id: "33333333-3333-3333-3333-333333333333", name: "VnExpress Giải Trí", url: "https://vnexpress.net/rss/giai-tri.rss", category: "Entertainment", active: true },
+  { id: "44444444-4444-4444-4444-444444444444", name: "Thanh Niên Trang Chủ", url: "https://thanhnien.vn/rss/home.rss", category: "Featured", active: true },
+  { id: "55555555-5555-5555-5555-555555555555", name: "Thanh Niên Thời Sự", url: "https://thanhnien.vn/rss/thoi-su.rss", category: "Current Affairs", active: true },
+  { id: "66666666-6666-6666-6666-666666666666", name: "Thanh Niên Đời Sống", url: "https://thanhnien.vn/rss/doi-song.rss", category: "Society", active: true },
+  { id: "77777777-7777-7777-7777-777777777777", name: "Thanh Niên Giải Trí", url: "https://thanhnien.vn/rss/giai-tri.rss", category: "Entertainment", active: true },
+  { id: "88888888-8888-8888-8888-888888888888", name: "24h Tin Trong Ngày", url: "https://www.24h.com.vn/upload/rss/tintuctrongngay.rss", category: "Featured", active: true },
+  { id: "99999999-9999-9999-9999-999999999999", name: "24h Giải Trí", url: "https://www.24h.com.vn/upload/rss/giaitri.rss", category: "Entertainment", active: true },
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Thể Thao 247", url: "https://thethao247.vn/trang-chu.rss", category: "Thể Thao", active: true },
+  { id: "10000000-0000-0000-0000-000000000001", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
+  { id: "20000000-0000-0000-0000-000000000002", name: "24h Giá Vàng", url: "https://www.24h.com.vn/upload/rss/taichinh.rss", category: "Gold", active: true }
 ];
 
 let mockNewsArticles: NewsArticle[] = [];
@@ -68,12 +75,38 @@ function generateUUID(): string {
   });
 }
 
+let hasMigratedSources = false;
+
 // 1. RssSource Repository
 export const RssSourceRepository = {
   async getActiveSources(): Promise<RssSource[]> {
     if (env.isSupabaseMock) {
       logger.info("Reading active RSS sources from memory.", "REPO-RSS");
       return mockRssSources.filter((s) => s.active);
+    }
+    
+    // Auto-wipe and re-seed on first run after logic change
+    if (!hasMigratedSources) {
+      logger.info("Performing one-time wipe of old sources and re-seeding with new ones...", "REPO-RSS");
+      hasMigratedSources = true;
+      try {
+        const { error: delErr } = await supabase!.from("rss_sources").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (delErr) logger.error("Delete error in migration", delErr);
+
+        const seedData = mockRssSources.map((s) => ({
+          id: s.id,
+          name: s.name,
+          url: s.url,
+          category: s.category,
+          active: s.active
+        }));
+        
+        const { error: insErr } = await supabase!.from("rss_sources").insert(seedData);
+        if (insErr) logger.error("Insert error in migration", insErr);
+        else logger.success("Successfully replaced all RSS sources in Supabase.", "REPO-RSS");
+      } catch (err) {
+        logger.error("Failed to migrate RSS sources.", err, "REPO-RSS");
+      }
     }
     
     logger.info("Fetching active RSS sources from Supabase.", "REPO-RSS");
@@ -87,29 +120,8 @@ export const RssSourceRepository = {
       return mockRssSources.filter((s) => s.active);
     }
     
-    // Self-healing: If the table exists but is completely empty, auto-seed it with defaults
     if (!data || data.length === 0) {
-      logger.warn("No active RSS sources found in Supabase. Attempting to auto-seed table...", "REPO-RSS");
-      
-      const seedData = mockRssSources.map(s => ({
-        name: s.name,
-        url: s.url,
-        category: s.category,
-        active: s.active
-      }));
-      
-      const { data: seededData, error: seedError } = await supabase!
-        .from("rss_sources")
-        .insert(seedData)
-        .select();
-        
-      if (seedError) {
-        logger.error("Failed to auto-seed RSS sources in Supabase. Falling back to local in-memory sources.", seedError, "REPO-RSS");
-        return mockRssSources.filter((s) => s.active);
-      }
-      
-      logger.success(`Successfully auto-seeded ${seededData?.length || 0} active RSS sources in Supabase.`, "REPO-RSS");
-      return seededData || mockRssSources.filter((s) => s.active);
+      return mockRssSources.filter((s) => s.active);
     }
     
     return data;

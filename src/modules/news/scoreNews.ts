@@ -40,12 +40,25 @@ export function scoreArticles(articles: NewsArticle[]): NewsArticle[] {
       else if (description.includes(spam)) score -= 10;
     }
     
-    // 3. Recency Boosting (articles in the last 6 hours get slightly boosted)
+    // 3. Recency & Source Boosting
     const ageHrs = (Date.now() - art.pub_date.getTime()) / (1000 * 60 * 60);
-    if (ageHrs <= 6) {
-      score += 10;
-    } else if (ageHrs > 24) {
-      score -= 15; // De-prioritize older articles
+    const isVnExpress = (art.url || "").toLowerCase().includes("vnexpress.net");
+    
+    if (isVnExpress) {
+      if (ageHrs <= 12) {
+        score += 60; // Huge boost for fresh VnExpress articles
+      } else if (ageHrs <= 24) {
+        score += 10; // Moderate boost for recent VnExpress
+      } else {
+        score -= 30; // Heavy penalty for old VnExpress so fresh alternative sources win
+      }
+    } else {
+      // Other sources (Thanh Niên, 24h, etc.)
+      if (ageHrs <= 12) {
+        score += 30; // Strong boost for fresh other sources (beats old VnExpress)
+      } else if (ageHrs > 24) {
+        score -= 15; // De-prioritize older articles
+      }
     }
     
     // 4. Content length checks

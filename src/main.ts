@@ -98,14 +98,22 @@ export async function runWorkflow(): Promise<void> {
 
     // Build source lookup maps for AI ranking context
     const sourceMap: Record<string, string> = {};
-    const sportSourceIds = new Set<string>();
+    const sourceCategoryMap: Record<string, Set<string>> = {
+      sports: new Set(),
+      politics: new Set(),
+      society: new Set(),
+      entertainment: new Set()
+    };
     for (const src of sources) {
       sourceMap[src.id] = src.name;
-      if (src.category === "Thể Thao") {
-        sportSourceIds.add(src.id);
+      if (src.category === "Thể Thao") sourceCategoryMap.sports.add(src.id);
+      if (src.category === "Current Affairs") {
+        sourceCategoryMap.politics.add(src.id);
+        sourceCategoryMap.society.add(src.id); // fallback
       }
+      if (src.category === "Society") sourceCategoryMap.society.add(src.id);
+      if (src.category === "Entertainment") sourceCategoryMap.entertainment.add(src.id);
     }
-    logger.info(`Sport source IDs: [${[...sportSourceIds].join(", ")}]`, "WORKFLOW");
 
     // ─── 2. Normalize, Save, Deduplicate ─────────────────────────────────────
     const normalizedRaw = await normalizeRawNews(rawItems);
@@ -129,10 +137,12 @@ export async function runWorkflow(): Promise<void> {
       });
     }
 
-    // Keep only articles with valid thumbnails for slide rendering
+    // Keep only articles with valid thumbnails for slide rendering AND less than 48 hours old
     const candidatesWithThumbs = candidateArticles.filter((cand) => {
       const thumb = cand.thumbnail_url;
-      return thumb && thumb.trim() !== "" && thumb !== "NONE";
+      const hasThumb = thumb && thumb.trim() !== "" && thumb !== "NONE";
+      const hoursAge = (Date.now() - new Date(cand.pub_date).getTime()) / 3600000;
+      return hasThumb && hoursAge <= 48;
     });
 
     if (candidatesWithThumbs.length === 0) {
@@ -166,7 +176,7 @@ export async function runWorkflow(): Promise<void> {
     const renderJob = await RenderJobRepository.createRenderJob(videoRecordId, "rendering");
     renderJobId = renderJob.id;
 
-    const generalArticleIds = new Set<string>();
+    const usedArticleIds = new Set<string>();
 
     // ─── 3. GENERAL: Top 20 Total ─────────────────────────────────────────────
     logger.info("==================================================", "WORKFLOW");
@@ -179,7 +189,7 @@ export async function runWorkflow(): Promise<void> {
       const summarizedArticles = await summarizeNewsArticles(rankedArticles);
 
       for (const art of summarizedArticles) {
-        generalArticleIds.add(art.id);
+        usedArticleIds.add(art.id);
       }
 
       const dbUpdates = summarizedArticles.map((art) => ({ id: art.id, score: art.score || 0, is_ranked: true, summary: art.summary || "" }));
@@ -224,16 +234,16 @@ export async function runWorkflow(): Promise<void> {
       PipelineTracker.updateProgress({ percentage: topicProgress, message: `Đang xử lý chủ đề: ${topic.labelVi}...` });
 
       try {
-        const filteredPreScored = preScored.filter((art) => !generalArticleIds.has(art.id));
+        const filteredPreScored = preScored.filter((art) => !usedArticleIds.has(art.id));
 
-        // For Sports topic: boost articles from dedicated sports sources to the top of the pool
-        // so they are never accidentally cut off by the 100-article slice in rankNewsByCategory
         let poolForRanking = filteredPreScored;
-        if (topic.key === "sports" && sportSourceIds.size > 0) {
-          const sportArticles   = filteredPreScored.filter(a => a.source_id && sportSourceIds.has(a.source_id));
-          const otherArticles   = filteredPreScored.filter(a => !a.source_id || !sportSourceIds.has(a.source_id));
-          poolForRanking = [...sportArticles, ...otherArticles];
-          logger.info(`[SPORTS] Pool: ${sportArticles.length} sport-source articles boosted to top (total pool: ${poolForRanking.length}).`, "WORKFLOW");
+        const topicSourceIds = sourceCategoryMap[topic.key];
+        
+        if (topicSourceIds && topicSourceIds.size > 0) {
+          const topicArts = filteredPreScored.filter(a => a.source_id && topicSourceIds.has(a.source_id));
+          const otherArts = filteredPreScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
+          poolForRanking = [...topicArts, ...otherArts];
+          logger.info(`[${topic.key.toUpperCase()}] Pool: ${topicArts.length} dedicated-source articles boosted to top.`, "WORKFLOW");
         }
 
         const categoryRanked = await rankNewsByCategory(poolForRanking, topic.labelVi, topic.topN, sourceMap);
@@ -245,6 +255,12 @@ export async function runWorkflow(): Promise<void> {
         }
 
         const summarized = await summarizeNewsArticles(categoryRanked);
+        
+        // Ensure articles are not reused in subsequent topics
+        for (const art of summarized) {
+          usedArticleIds.add(art.id);
+        }
+        
         PipelineTracker.updateTopicProgress(topic.key, { percentage: 50, message: "Đang dựng slide ảnh..." });
 
         const outroSlide: NewsArticle = {
@@ -294,8 +310,9 @@ export async function runWorkflow(): Promise<void> {
 
       const goldDriveFolderName = `${videoTitle} - ${timeStr} - Giá Vàng`;
       const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir, rootDriveFolder.folderId);
-      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootDriveFolder.webViewUrl });
+      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: 6, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
+      } // END SKIPPED
     } catch (err: any) {
       logger.error("[GOLD] Gold price pipeline failed.", err, "WORKFLOW");
       PipelineTracker.updateTopicProgress("gold", { status: "failed", error: err.message });
@@ -396,10 +413,21 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
     const savedArticles = await NewsArticleRepository.saveArticles(normalizedRaw);
 
     const sourceMap: Record<string, string> = {};
-    const sportSourceIds = new Set<string>();
+    const sourceCategoryMap: Record<string, Set<string>> = {
+      sports: new Set(),
+      politics: new Set(),
+      society: new Set(),
+      entertainment: new Set()
+    };
     for (const src of sources) {
       sourceMap[src.id] = src.name;
-      if (src.category === "Thể Thao") sportSourceIds.add(src.id);
+      if (src.category === "Thể Thao") sourceCategoryMap.sports.add(src.id);
+      if (src.category === "Current Affairs") {
+        sourceCategoryMap.politics.add(src.id);
+        sourceCategoryMap.society.add(src.id);
+      }
+      if (src.category === "Society") sourceCategoryMap.society.add(src.id);
+      if (src.category === "Entertainment") sourceCategoryMap.entertainment.add(src.id);
     }
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 25, message: "AI đang xếp hạng tin..." });
@@ -427,11 +455,12 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
       rankedArticles = await rankNewsArticles(preScored);
     } else {
       let pool = preScored;
-      if (topicKey === "sports" && sportSourceIds.size > 0) {
-        const sportArts = preScored.filter(a => a.source_id && sportSourceIds.has(a.source_id));
-        const otherArts = preScored.filter(a => !a.source_id || !sportSourceIds.has(a.source_id));
-        pool = [...sportArts, ...otherArts];
-        logger.info(`[SPORTS] Boosted ${sportArts.length} sport-source articles.`, "WORKFLOW");
+      const topicSourceIds = sourceCategoryMap[topicDef.key];
+      if (topicSourceIds && topicSourceIds.size > 0) {
+        const topicArts = preScored.filter(a => a.source_id && topicSourceIds.has(a.source_id));
+        const otherArts = preScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
+        pool = [...topicArts, ...otherArts];
+        logger.info(`[${topicDef.key.toUpperCase()}] Boosted ${topicArts.length} dedicated-source articles.`, "WORKFLOW");
       }
       rankedArticles = await rankNewsByCategory(pool, topicDef.labelVi, topicDef.topN, sourceMap);
     }
