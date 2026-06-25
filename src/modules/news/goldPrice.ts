@@ -567,7 +567,7 @@ export async function fetchGoldNewsArticles(limit: number = 5): Promise<NewsArti
     }
     
     if (candidates.length === 0) {
-      candidates = normalizedRaw;
+      candidates = normalizedRaw as unknown as NewsArticle[];
     } else {
       candidates = candidates.map(c => {
         if (!c.thumbnail_url || c.thumbnail_url.trim() === "") {
