@@ -182,14 +182,15 @@ export async function uploadNewsReleaseToGoogleDrive(
   videoFileName: string,
   localSlidesDir: string,
   parentFolderId?: string
-): Promise<{ folderId: string; webViewUrl: string }> {
+): Promise<{ folderId: string; webViewUrl: string; publicImageUrls: string[] }> {
   logger.info(`Starting Release upload to Google Drive. Target folder: ${folderName}`, "STORAGE-DRIVE");
 
   if (env.isDriveMock) {
     logger.warn("Google Drive Mock Mode is active. Skipping upload.", "STORAGE-DRIVE");
     return {
       folderId: `mock-folder-id-${Date.now()}`,
-      webViewUrl: `https://drive.google.com/mock/folder/d/mock-folder-id-${Date.now()}`
+      webViewUrl: `https://drive.google.com/mock/folder/d/mock-folder-id-${Date.now()}`,
+      publicImageUrls: []
     };
   }
 
@@ -271,6 +272,7 @@ export async function uploadNewsReleaseToGoogleDrive(
     }
 
     // 4. Upload Slide PNGs
+    const publicImageUrls: string[] = [];
     if (fs.existsSync(localSlidesDir)) {
       const slideFiles = fs.readdirSync(localSlidesDir)
         .filter((f) => (f.startsWith("slide_") || f === "cover.png") && f.endsWith(".png"))
@@ -287,22 +289,34 @@ export async function uploadNewsReleaseToGoogleDrive(
           mimeType: "image/png",
           body: fs.createReadStream(slidePath)
         };
-        await drive.files.create({
+        const slideResponse = await drive.files.create({
           requestBody: slideMetadata,
           media: slideMedia,
-          fields: "id"
+          fields: "id, thumbnailLink, webContentLink"
         });
+        const slideId = slideResponse.data.id;
+        const thumbnailLink = slideResponse.data.thumbnailLink;
+        const webContentLink = slideResponse.data.webContentLink;
+        
+        if (slideId) {
+          if (webContentLink) {
+            publicImageUrls.push(webContentLink);
+          } else {
+            publicImageUrls.push(`https://drive.google.com/uc?export=view&id=${slideId}`);
+          }
+        }
         logger.info(`Uploaded slide: ${slideFile}`, "STORAGE-DRIVE");
       }
       logger.success("All slide images uploaded successfully.", "STORAGE-DRIVE");
     }
 
-    return { folderId, webViewUrl: folderUrl };
+    return { folderId, webViewUrl: folderUrl, publicImageUrls };
   } catch (error: any) {
     logger.error("Failed to upload news release folder to Google Drive.", error, "STORAGE-DRIVE");
     return {
       folderId: `failed-folder-id-${Date.now()}`,
-      webViewUrl: `https://drive.google.com/failed/folder/d/failed-folder-id-${Date.now()}`
+      webViewUrl: `https://drive.google.com/failed/folder/d/failed-folder-id-${Date.now()}`,
+      publicImageUrls: []
     };
   }
 }

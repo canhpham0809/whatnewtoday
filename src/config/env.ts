@@ -29,6 +29,9 @@ export interface Config {
   
   cronTime: string;
   nodeEnv: string;
+
+  bufferApiKey: string;
+  bufferTiktokChannelId: string;
 }
 
 function getEnv(key: string, defaultValue = ""): string {
@@ -74,7 +77,10 @@ export const env: Config = {
   isTiktokMock: !getEnv("TIKTOK_ACCESS_TOKEN"),
   
   cronTime: getEnv("CRON_TIME", "0 8 * * *"),
-  nodeEnv: getEnv("NODE_ENV", "development")
+  nodeEnv: getEnv("NODE_ENV", "development"),
+
+  bufferApiKey: getEnv("BUFFER_API_KEY"),
+  bufferTiktokChannelId: getEnv("BUFFER_TIKTOK_CHANNEL_ID")
 };
 
 // Log warning details about fallback modes if credentials are not configured
@@ -104,6 +110,12 @@ export function checkConfigAndLogWarnings(): void {
     logger.warn("TIKTOK_ACCESS_TOKEN is missing! Using Mock TikTok publisher (posting steps will be logged only).", "CONFIG");
   } else {
     logger.success("TikTok Creator API credentials loaded successfully. Live publishing enabled!", "CONFIG");
+  }
+
+  if (!env.bufferApiKey || !env.bufferTiktokChannelId) {
+    logger.warn("BUFFER_API_KEY or BUFFER_TIKTOK_CHANNEL_ID is missing! Buffer Auto-Publishing is disabled.", "CONFIG");
+  } else {
+    logger.success("Buffer API credentials loaded successfully. TikTok photo carousels enabled!", "CONFIG");
   }
 }
 export default env;

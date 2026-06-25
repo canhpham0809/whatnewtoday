@@ -18,6 +18,7 @@ import { rankNewsArticles, rankNewsByCategory } from "./modules/ai/rankNews";
 import { summarizeNewsArticles } from "./modules/ai/summarizeNews";
 import { renderNewsArticlesToImages, renderGoldPriceSlides, CoverCategory } from "./modules/render/renderNewsCard";
 import { createDriveFolder, uploadNewsReleaseToGoogleDrive } from "./modules/storage/googleDrive";
+import { postCarouselToTikTok } from "./modules/social/buffer";
 import { scrapeGoldPrices } from "./modules/news/goldPrice";
 import { PipelineTracker, TopicKey } from "./utils/pipelineTracker";
 import { getVietnamTime } from "./utils/date";
@@ -216,6 +217,12 @@ export async function runWorkflow(): Promise<void> {
 
       const driveFolderName = `${videoTitle} - ${timeStr} - Tổng Hợp`;
       const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir, rootDriveFolder.folderId);
+      
+      if (uploadResult.publicImageUrls && uploadResult.publicImageUrls.length > 0) {
+        PipelineTracker.updateTopicProgress("general", { percentage: 90, message: "Đang đẩy sang Buffer để tự động đăng TikTok..." });
+        await postCarouselToTikTok(`Bản Tin Sáng - Tổng hợp tin tức nổi bật ngày ${dd}/${mm}/${yyyy} 🚀 #tintuc #thegioi`, uploadResult.publicImageUrls);
+      }
+
       PipelineTracker.updateTopicProgress("general", { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GENERAL] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
@@ -281,6 +288,12 @@ export async function runWorkflow(): Promise<void> {
 
         const driveFolderName = `${videoTitle} - ${timeStr} - ${topic.labelVi}`;
         const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir, rootDriveFolder.folderId);
+
+        if (uploadResult.publicImageUrls && uploadResult.publicImageUrls.length > 0) {
+          PipelineTracker.updateTopicProgress(topic.key, { percentage: 90, message: "Đang đẩy sang Buffer để tự động đăng TikTok..." });
+          await postCarouselToTikTok(`Bản Tin ${topic.labelVi} - Cập nhật ngày ${dd}/${mm}/${yyyy} 🚀 #tintuc`, uploadResult.publicImageUrls);
+        }
+
         PipelineTracker.updateTopicProgress(topic.key, { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: rootDriveFolder.webViewUrl });
         logger.success(`[${topic.key.toUpperCase()}] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
       } catch (err: any) {
@@ -310,6 +323,12 @@ export async function runWorkflow(): Promise<void> {
 
       const goldDriveFolderName = `${videoTitle} - ${timeStr} - Giá Vàng`;
       const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir, rootDriveFolder.folderId);
+
+      if (goldUploadResult.publicImageUrls && goldUploadResult.publicImageUrls.length > 0) {
+        PipelineTracker.updateTopicProgress("gold", { percentage: 90, message: "Đang đẩy sang Buffer để tự động đăng TikTok..." });
+        await postCarouselToTikTok(`Bản Tin Giá Vàng hôm nay ${dd}/${mm}/${yyyy} 📈 #giavang #taichinh`, goldUploadResult.publicImageUrls);
+      }
+
       PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: 6, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
@@ -395,7 +414,12 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
 
       PipelineTracker.updateTopicProgress("gold", { percentage: 80, message: "Đang upload lên Google Drive..." });
       const rootFolder = await createDriveFolder(videoTitle);
-      await uploadNewsReleaseToGoogleDrive(`${videoTitle} - Giá Vàng`, "", "", goldOutputDir, rootFolder.folderId);
+      const goldUploadResult = await uploadNewsReleaseToGoogleDrive(`${videoTitle} - Giá Vàng`, "", "", goldOutputDir, rootFolder.folderId);
+
+      if (goldUploadResult.publicImageUrls && goldUploadResult.publicImageUrls.length > 0) {
+        PipelineTracker.updateTopicProgress("gold", { percentage: 90, message: "Đang đẩy sang Buffer..." });
+        await postCarouselToTikTok(`Bản Tin Giá Vàng hôm nay ${dd}/${mm}/${yyyy} 📈 #giavang #taichinh`, goldUploadResult.publicImageUrls);
+      }
 
       PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootFolder.webViewUrl });
       PipelineTracker.updateProgress({ status: "completed", step: "idle", stepName: "Hệ thống đang chờ", percentage: 100, message: `✅ Hoàn tất Giá Vàng sau ${((Date.now() - startTime) / 60000).toFixed(1)} phút!` });
@@ -496,7 +520,12 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 80, message: "Đang upload lên Google Drive..." });
     const rootFolder = await createDriveFolder(videoTitle);
-    await uploadNewsReleaseToGoogleDrive(`${videoTitle} - ${topicDef.labelVi}`, "", "", outputDir, rootFolder.folderId);
+    const uploadResult = await uploadNewsReleaseToGoogleDrive(`${videoTitle} - ${topicDef.labelVi}`, "", "", outputDir, rootFolder.folderId);
+
+    if (uploadResult.publicImageUrls && uploadResult.publicImageUrls.length > 0) {
+      PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 90, message: "Đang đẩy sang Buffer..." });
+      await postCarouselToTikTok(`Bản Tin ${topicDef.labelVi} ngày ${dd}/${mm}/${yyyy} 🚀 #tintuc`, uploadResult.publicImageUrls);
+    }
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, {
       status: "completed", percentage: 100,
