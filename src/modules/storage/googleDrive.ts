@@ -4,6 +4,7 @@ import path from "path";
 import env from "../../config/env";
 import { logger } from "../../utils/logger";
 import { supabase } from "../database/supabaseClient";
+import sharp from "sharp";
 
 /**
  * Creates a Google Drive folder under the configured root or an explicit parent folder.
@@ -279,6 +280,7 @@ export async function uploadNewsReleaseToGoogleDrive(
         .filter((f) => (f.startsWith("slide_") || f === "cover.png") && f.endsWith(".png"))
         .sort();
 
+      const folderTimestamp = Date.now();
       logger.info(`Uploading ${slideFiles.length} slide images to Drive folder...`, "STORAGE-DRIVE");
       for (const slideFile of slideFiles) {
         const slidePath = path.join(localSlidesDir, slideFile);
@@ -299,19 +301,51 @@ export async function uploadNewsReleaseToGoogleDrive(
           });
 
           // B. Supabase Storage Public CDN Upload (100% reliable for Buffer API)
+          // Compress PNG → JPEG 80% to keep each slide under Buffer's 5MB media limit
           let finalPublicUrl: string | undefined;
           if (!env.isSupabaseMock && supabase) {
             try {
-              const fileBuf = fs.readFileSync(slidePath);
-              const storagePath = `slides_${folderId.slice(0, 8)}_${Date.now()}/${slideFile}`;
-              const { data: supaData } = await supabase.storage
-                .from("news-slides")
-                .upload(storagePath, fileBuf, { contentType: "image/png", upsert: true });
+              const originalBuf = fs.readFileSync(slidePath);
+              let uploadBuf: Buffer;
+              let contentType: string;
+              let storageExt: string;
+              try {
+                uploadBuf = await sharp(originalBuf).jpeg({ quality: 82 }).toBuffer();
+                contentType = "image/jpeg";
+                storageExt = slideFile.replace(/\.png$/, ".jpg");
+              } catch {
+                // sharp failed, fall back to original PNG
+                uploadBuf = originalBuf;
+                contentType = "image/png";
+                storageExt = slideFile;
+              }
+              const storagePath = `slides_${folderId.slice(0, 8)}_${folderTimestamp}/${storageExt}`;
+              logger.info(`Uploading ${slideFile}: ${(uploadBuf.length / 1024).toFixed(0)}KB ${contentType} → Supabase`, "STORAGE-DRIVE");
+              
+              let supaData: any = null;
+              let supaUploadErr: any = null;
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                const res = await supabase.storage
+                  .from("news-slides")
+                  .upload(storagePath, uploadBuf, { contentType, upsert: true });
+                supaData = res.data;
+                supaUploadErr = res.error;
+                if (supaData?.path) break;
+                if (attempt < 3) {
+                  logger.warn(`Supabase upload attempt ${attempt} failed for ${slideFile}. Retrying...`, "STORAGE-DRIVE");
+                  await new Promise(r => setTimeout(r, 800));
+                }
+              }
+
+              if (supaUploadErr && !supaData?.path) {
+                logger.warn(`Supabase upload failed for ${slideFile}: ${supaUploadErr.message || JSON.stringify(supaUploadErr)}`, "STORAGE-DRIVE");
+              }
 
               if (supaData?.path) {
                 const { data: pUrlData } = supabase.storage.from("news-slides").getPublicUrl(storagePath);
                 if (pUrlData?.publicUrl) {
                   finalPublicUrl = pUrlData.publicUrl;
+                  logger.info(`✅ Supabase URL: ${pUrlData.publicUrl.slice(-50)}`, "STORAGE-DRIVE");
                 }
               }
             } catch (supaErr: any) {
@@ -319,15 +353,16 @@ export async function uploadNewsReleaseToGoogleDrive(
             }
           }
 
-          if (!finalPublicUrl && uploadedFile.data?.id) {
-            finalPublicUrl = `https://lh3.googleusercontent.com/d/${uploadedFile.data.id}`;
+          // Only push Supabase public CDN URLs to slideImageUrls (used by Buffer API).
+          // Do not push Google Drive direct links (lh3.googleusercontent.com) as Buffer cannot read authenticated Drive links.
+          if (finalPublicUrl && finalPublicUrl.includes("supabase.co")) {
+            slideImageUrls.push(finalPublicUrl);
+          } else {
+            logger.warn(`⚠️ Slide ${slideFile} has no Supabase CDN URL. Skipping Buffer media payload for this slide to prevent Buffer 400 errors.`, "STORAGE-DRIVE");
           }
 
-          if (finalPublicUrl) {
-            slideImageUrls.push(finalPublicUrl);
-            if (slideFile === "cover.png" || !coverImageUrl) {
-              coverImageUrl = finalPublicUrl;
-            }
+          if (!coverImageUrl) {
+            coverImageUrl = finalPublicUrl || (uploadedFile.data?.id ? `https://lh3.googleusercontent.com/d/${uploadedFile.data.id}` : undefined);
           }
           logger.info(`Uploaded slide: ${slideFile}`, "STORAGE-DRIVE");
         } catch (slideErr: any) {
@@ -335,6 +370,13 @@ export async function uploadNewsReleaseToGoogleDrive(
         }
       }
       logger.success(`Slide images processing complete. Collected ${slideImageUrls.length} direct image URLs.`, "STORAGE-DRIVE");
+      logger.info("Warming up Supabase CDN URLs & waiting 6.5s for global DNS propagation across AWS edge nodes...", "STORAGE-DRIVE");
+      for (const url of slideImageUrls) {
+        try {
+          await fetch(url, { method: "HEAD" });
+        } catch (_e) {}
+      }
+      await new Promise(r => setTimeout(r, 6500));
     }
 
     return { folderId, webViewUrl: folderUrl, coverImageUrl, slideImageUrls };

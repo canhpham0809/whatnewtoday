@@ -64,8 +64,9 @@ export async function postVideoToBuffer(caption: string, mediaUrls?: string | st
       assetsList = assetsList.slice(0, 10);
     }
 
-    // Attempt 1: Buffer GraphQL API (Recommended API v2)
-    try {
+    // Buffer GraphQL API (v2). Do not fall back to the legacy REST endpoint:
+    // it cannot represent a multi-image carousel and would treat an image as a video.
+    {
       const inputObj: any = {
         channelId: env.bufferProfileId,
         text: caption,
@@ -84,7 +85,7 @@ export async function postVideoToBuffer(caption: string, mediaUrls?: string | st
                   id
                 }
               }
-              ... on InvalidInputError {
+              ... on MutationError {
                 message
               }
             }
@@ -95,61 +96,54 @@ export async function postVideoToBuffer(caption: string, mediaUrls?: string | st
         }
       };
 
-      const gqlResponse = await axios.post("https://api.buffer.com/graphql", graphqlQuery, {
-        headers: {
-          "Authorization": `Bearer ${env.bufferAccessToken}`,
-          "Content-Type": "application/json"
-        },
-        timeout: 30000
-      });
+      let attempt = 0;
+      let lastError: any = null;
 
-      const resData = gqlResponse.data;
-      if (resData.errors && resData.errors.length > 0) {
-        const errStr = resData.errors.map((e: any) => e.message).join(", ");
-        throw new Error(`Buffer GraphQL API error: ${errStr}`);
+      while (attempt < 3) {
+        attempt++;
+        try {
+          logger.info(`Sending post update request to Buffer API (Attempt ${attempt}/3)...`, "BUFFER-PUB");
+          const gqlResponse = await axios.post("https://api.buffer.com/graphql", graphqlQuery, {
+            headers: {
+              "Authorization": `Bearer ${env.bufferAccessToken}`,
+              "Content-Type": "application/json"
+            },
+            timeout: 60000
+          });
+
+          const resData = gqlResponse.data;
+          if (resData.errors && resData.errors.length > 0) {
+            const errStr = resData.errors.map((e: any) => e.message).join(", ");
+            throw new Error(`Buffer GraphQL API error: ${errStr}`);
+          }
+
+          const createRes = resData.data?.createPost;
+          if (createRes?.__typename === "PostActionSuccess" && createRes.post?.id) {
+            const updateId = createRes.post.id;
+            logger.success(`Buffer update created successfully via GraphQL API! Update ID: ${updateId}`, "BUFFER-PUB");
+            return { updateId, shareUrl: "https://publish.buffer.com/", isMock: false };
+          } else if (createRes?.__typename === "InvalidInputError" || createRes?.__typename === "MutationError") {
+            const msg = createRes.message || "Unknown error";
+            lastError = new Error(`Buffer rejected post (${createRes.__typename}): ${msg}`);
+            if (attempt < 3) {
+              logger.warn(`⚠️ Buffer returned ${createRes.__typename} (Attempt ${attempt}/3): ${msg}. Retrying in 3.5s...`, "BUFFER-PUB");
+              await new Promise(r => setTimeout(r, 3500));
+              continue;
+            }
+          } else {
+            lastError = new Error(`Unexpected Buffer createPost response: ${JSON.stringify(createRes || resData)}`);
+          }
+        } catch (err: any) {
+          lastError = err;
+          if (attempt < 3) {
+            logger.warn(`⚠️ Buffer request attempt ${attempt}/3 failed (${err.message}). Retrying in 3.5s...`, "BUFFER-PUB");
+            await new Promise(r => setTimeout(r, 3500));
+          }
+        }
       }
 
-      const createRes = resData.data?.createPost;
-      if (createRes?.__typename === "PostActionSuccess" && createRes.post?.id) {
-        const updateId = createRes.post.id;
-        logger.success(`Buffer update created successfully via GraphQL API! Update ID: ${updateId}`, "BUFFER-PUB");
-        return { updateId, shareUrl: "https://publish.buffer.com/", isMock: false };
-      } else if (createRes?.__typename === "InvalidInputError") {
-        logger.warn(`Buffer API notice: ${createRes.message}`, "BUFFER-PUB");
-        return { updateId: `buffer_notice_${Date.now()}`, shareUrl: "https://publish.buffer.com/", isMock: true };
-      }
-    } catch (gqlErr: any) {
-      logger.warn(`Buffer GraphQL API attempt details: ${gqlErr.message}`, "BUFFER-PUB");
+      throw lastError;
     }
-
-    // Attempt 2: Buffer Legacy REST API
-    const params = new URLSearchParams();
-    params.append("access_token", env.bufferAccessToken);
-    params.append("profile_ids[]", env.bufferProfileId);
-    params.append("text", caption);
-    params.append("now", "true");
-
-    const singleMedia = Array.isArray(mediaUrls) ? mediaUrls[0] : mediaUrls;
-    if (singleMedia) {
-      params.append("media[video]", singleMedia);
-    }
-
-    const response = await axios.post("https://api.bufferapp.com/1/updates/create.json", params, {
-      headers: {
-        "Authorization": `Bearer ${env.bufferAccessToken}`,
-        "Content-Type": "application/x-www-form-urlencoded"
-      }
-    });
-
-    const data = response.data;
-    const updateId = data.updates?.[0]?.id || `buf_${Date.now()}`;
-    logger.success(`Buffer update created successfully via REST API! Update ID: ${updateId}`, "BUFFER-PUB");
-
-    return {
-      updateId,
-      shareUrl: "https://publish.buffer.com/",
-      isMock: false
-    };
 
   } catch (error: any) {
     const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || String(error);
@@ -158,11 +152,6 @@ export async function postVideoToBuffer(caption: string, mediaUrls?: string | st
     if (error.response?.data) {
       logger.debug(`Buffer Error Response: ${JSON.stringify(error.response.data)}`, "BUFFER-PUB");
     }
-    // Return graceful fallback result so workflow is not blocked
-    return {
-      updateId: `error_fallback_${Date.now()}`,
-      shareUrl: "https://publish.buffer.com/",
-      isMock: true
-    };
+    throw error;
   }
 }

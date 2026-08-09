@@ -460,13 +460,17 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
     PipelineTracker.updateProgress({ step: "ai_ranking", stepName: "AI Xếp Hạng & Tóm Tắt", percentage: 25 });
 
     let candidates = await NewsArticleRepository.getUnrankedArticles(24);
-    if (candidates.length === 0) candidates = savedArticles;
-    else {
-      candidates = candidates.map(c => {
-        const orig = normalizedRaw.find(s => s.url === c.url);
-        return { ...c, thumbnail_url: orig ? orig.thumbnail_url : c.thumbnail_url };
-      });
+    // If DB returns fewer candidates than what we just fetched (e.g. due to Supabase write failure),
+    // use the freshly-fetched savedArticles directly so we always have full article pool
+    if (candidates.length < savedArticles.length) {
+      logger.info(`DB returned ${candidates.length} unranked articles but we have ${savedArticles.length} fresh articles. Using fresh fetch.`, "REPO-NEWS");
+      candidates = savedArticles;
     }
+    // Always merge thumbnail_url from normalizedRaw (it's not stored in DB)
+    candidates = candidates.map(c => {
+      const orig = normalizedRaw.find(s => s.url === c.url);
+      return { ...c, thumbnail_url: orig?.thumbnail_url || c.thumbnail_url || "" };
+    });
 
     const candidatesWithThumbs = candidates.filter(c => {
       const t = c.thumbnail_url;

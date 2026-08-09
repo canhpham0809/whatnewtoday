@@ -91,13 +91,87 @@ CHÚ Ý: Chỉ trả về JSON hợp lệ, không có Markdown hay ký tự dư 
     logger.success(`Category [${categoryVi}]: Ranked ${sorted.length} articles. Slicing to top ${topN}.`, "AI-RANK");
     return sorted.slice(0, topN);
   } catch (error: any) {
-    logger.error(`Error ranking for category [${categoryVi}]. Falling back to rule-based sorting.`, error, "AI-RANK");
-    return candidates.slice(0, topN).map((art, index) => ({
-      ...art,
-      score: 100 - index * 8,
-      is_ranked: true
-    }));
+    logger.error(`Error ranking for category [${categoryVi}]. Falling back to category rule-based sorting.`, error, "AI-RANK");
+    return fallbackCategorySort(candidates, categoryVi, topN);
   }
+}
+
+/**
+ * Fallback category sorting using domain-specific keywords when AI is unavailable.
+ */
+function fallbackCategorySort(candidates: NewsArticle[], categoryVi: string, topN: number): NewsArticle[] {
+  const categoryLower = categoryVi.toLowerCase();
+  const isPolitics = categoryLower.includes("chính trị") || categoryLower.includes("politics");
+  
+  let keywordsBoost: string[] = [];
+  let keywordsPenalty: string[] = [];
+
+  if (isPolitics) {
+    keywordsBoost = [
+      "chính trị", "chính phủ", "thủ tướng", "quốc hội", "bộ trưởng", "luật", 
+      "nghị định", "ban chấp hành", "chỉ thị", "miễn nhiệm", "bổ nhiệm", "hợp tác", 
+      "đối ngoại", "lãnh đạo", "ủy viên", "đảng", "bộ chính trị", "hội nghị", "nghị quyết", 
+      "chủ tịch", "tổng bí thư", "sáp nhập sở", "nghị viện", "bộ công an", "thanh tra chính phủ", 
+      "trao huân chương", "quyết định", "tỉnh ủy", "thành ủy", "ủy ban"
+    ];
+    keywordsPenalty = [
+      "nắng nóng", "thời tiết", "dự báo", "băng qua đường sắt", "tàu tông", "tử vong", 
+      "tai nạn", "xe khách", "xe tải", "va chạm", "trộm cắp", "cướp", "cháy nhà", 
+      "hỏa hoạn", "triều cường", "mưa bão", "ngập đường", "xổ số", "vietlott", 
+      "len trâu", "nạo vét", "ô nhiễm", "cụ bà", "nạn nhân", "báo in", "tử vi", "bói toán"
+    ];
+  } else if (categoryLower.includes("xã hội") || categoryLower.includes("society")) {
+    keywordsBoost = [
+      "xã hội", "đời sống", "y tế", "giáo dục", "giao thông", "môi trường", "an ninh", 
+      "dân sinh", "người dân", "bệnh viện", "tai nạn", "cháy", "bão", "ngập", "kênh", "trâu", "nạo vét", "ô nhiễm"
+    ];
+    keywordsPenalty = ["đối ngoại", "thủ tướng tiếp", "ban chấp hành", "báo in", "tử vi"];
+  } else if (categoryLower.includes("thể thao") || categoryLower.includes("sports")) {
+    keywordsBoost = [
+      "thể thao", "bóng đá", "hlv", "cầu thủ", "trận đấu", "vô địch", "giải đấu", "bàn thắng", 
+      "arsenal", "dortmund", "malaysia", "việt nam", "clb", "v-league", "olympic"
+    ];
+  } else if (categoryLower.includes("giải trí") || categoryLower.includes("entertainment")) {
+    keywordsBoost = [
+      "giải trí", "showbiz", "ca sĩ", "diễn viên", "phim", "âm nhạc", "hoa hậu", "dàn sao", "concert", "album", "nghệ sĩ"
+    ];
+  }
+
+  const scored = candidates.map((art) => {
+    let extraScore = art.score || 0;
+    const title = art.title.toLowerCase();
+    const desc = (art.description || "").toLowerCase();
+
+    let hasCategoryKeyword = false;
+    for (const kw of keywordsBoost) {
+      if (title.includes(kw)) {
+        extraScore += 80;
+        hasCategoryKeyword = true;
+      } else if (desc.includes(kw)) {
+        extraScore += 30;
+        hasCategoryKeyword = true;
+      }
+    }
+
+    for (const kw of keywordsPenalty) {
+      if (title.includes(kw)) extraScore -= 150;
+      else if (desc.includes(kw)) extraScore -= 50;
+    }
+
+    // For Politics, penalize articles that have zero political keywords
+    if (isPolitics && !hasCategoryKeyword) {
+      extraScore -= 100;
+    }
+
+    return { ...art, categoryScore: extraScore };
+  });
+
+  const sorted = scored.sort((a, b) => (b.categoryScore || 0) - (a.categoryScore || 0));
+  return sorted.slice(0, topN).map((art, index) => ({
+    ...art,
+    score: 100 - index * 8,
+    is_ranked: true
+  }));
 }
 
 /**

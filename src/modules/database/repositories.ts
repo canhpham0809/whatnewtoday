@@ -151,31 +151,48 @@ export const NewsArticleRepository = {
     }
 
     logger.info(`Saving ${articles.length} articles to Supabase.`, "REPO-NEWS");
-    // Bulk upsert to ensure source_id is updated if previously null
-    const { data, error } = await supabase!
-      .from("news_articles")
-      .upsert(
-        articles.map((a) => ({
-          source_id: a.source_id,
-          title: a.title,
-          description: a.description,
-          content: a.content,
-          url: a.url,
-          pub_date: a.pub_date.toISOString(),
-          guid: a.guid,
-          normalized_title: a.normalized_title,
-          normalized_content: a.normalized_content
-        })),
-        { onConflict: "url", ignoreDuplicates: false }
-      )
-      .select();
+    
+    // Deduplicate by URL before upsert to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const seenUrls = new Set<string>();
+    const uniqueArticles = articles.filter(a => {
+      if (!a.url || seenUrls.has(a.url)) return false;
+      seenUrls.add(a.url);
+      return true;
+    });
 
-    if (error) {
-      logger.warn("Error saving articles to Supabase (likely due to RLS write policies or schema issues). Falling back to memory-managed articles for this run.", "REPO-NEWS");
-      logger.debug(`Supabase error details: ${JSON.stringify(error)}`, "REPO-NEWS");
-      
-      // Highly defensive fallback: generate temporary UUIDs and return the normalized array 
-      // so the pipeline can successfully proceed to Gemini AI and rendering modules!
+    // Chunk upsert into batches of 100 to avoid Supabase payload limits
+    const CHUNK_SIZE = 100;
+    const allSaved: any[] = [];
+    let hadError = false;
+
+    for (let i = 0; i < uniqueArticles.length; i += CHUNK_SIZE) {
+      const chunk = uniqueArticles.slice(i, i + CHUNK_SIZE).map((a) => ({
+        source_id: a.source_id,
+        title: a.title,
+        description: a.description,
+        content: a.content,
+        url: a.url,
+        pub_date: a.pub_date.toISOString(),
+        guid: a.guid,
+        normalized_title: a.normalized_title,
+        normalized_content: a.normalized_content
+      }));
+
+      const { data, error } = await supabase!
+        .from("news_articles")
+        .upsert(chunk, { onConflict: "url", ignoreDuplicates: false })
+        .select();
+
+      if (error) {
+        logger.warn(`Error saving batch ${i / CHUNK_SIZE + 1} to Supabase: ${JSON.stringify(error)}`, "REPO-NEWS");
+        hadError = true;
+      } else {
+        allSaved.push(...(data || []));
+      }
+    }
+
+    if (hadError && allSaved.length === 0) {
+      logger.warn("All batches failed. Falling back to memory-managed articles for this run.", "REPO-NEWS");
       return articles.map((a) => ({
         id: generateUUID(),
         ...a,
@@ -183,11 +200,20 @@ export const NewsArticleRepository = {
       }));
     }
 
-    return (data || []).map((d: any) => ({
-      ...d,
-      pub_date: new Date(d.pub_date),
-      created_at: new Date(d.created_at)
-    }));
+    if (hadError) {
+      logger.warn(`Some batches failed but ${allSaved.length} articles saved OK.`, "REPO-NEWS");
+    }
+
+    return allSaved.map((d: any) => {
+      // thumbnail_url is not stored in DB — merge it back from the original input
+      const orig = articles.find(a => a.url === d.url);
+      return {
+        ...d,
+        thumbnail_url: orig?.thumbnail_url || "",
+        pub_date: new Date(d.pub_date),
+        created_at: new Date(d.created_at)
+      };
+    });
   },
 
   async getUnrankedArticles(hoursAgo = 24): Promise<NewsArticle[]> {

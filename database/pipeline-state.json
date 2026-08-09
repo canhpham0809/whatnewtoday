@@ -1,11 +1,11 @@
 {
-  "jobId": "job_1786269826843",
+  "jobId": "job_1786292280616",
   "step": "idle",
   "stepName": "Hệ thống đang chờ",
   "percentage": 100,
   "status": "completed",
-  "message": "✅ Hoàn tất Giá Vàng sau 1.2 phút!",
-  "lastUpdated": "2026-08-09T10:04:56.303Z",
+  "message": "✅ Hoàn tất \"Xã Hội\" (11 slides) sau 1.40 phút!",
+  "lastUpdated": "2026-08-09T16:19:24.597Z",
   "topics": {
     "general": {
       "status": "completed",
@@ -15,32 +15,33 @@
       "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
     },
     "sports": {
-      "status": "completed",
-      "percentage": 100,
+      "status": "failed",
+      "percentage": 90,
       "slideCount": 11,
       "message": "Đang tự động đăng bài qua Buffer/TikTok...",
-      "driveUrl": "https://drive.google.com/drive/folders/1x46TjEL9OgKYw2XCRK-O3FTt9i1Zi1mB"
+      "driveUrl": "https://drive.google.com/drive/folders/1J2O-Cka2lvQpq_avXB1bcGpM-4gnrDaN",
+      "error": "Request failed with status code 401"
     },
     "politics": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
+      "message": "Đang tự động đăng bài qua Buffer/TikTok...",
+      "driveUrl": "https://drive.google.com/drive/folders/1KAWa2JpKzzIZFkfI4w8A5MGrsEyZdxbs"
     },
     "society": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
+      "message": "Đang tự động đăng bài qua Buffer/TikTok...",
+      "driveUrl": "https://drive.google.com/drive/folders/1megErFdZJ4v3fM5Yqzs-2Y7eXw4SX8nF"
     },
     "entertainment": {
       "status": "completed",
       "percentage": 100,
-      "slideCount": 11,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
+      "slideCount": 7,
+      "message": "Đang tự động đăng bài qua Buffer/TikTok...",
+      "driveUrl": "https://drive.google.com/drive/folders/1yGC7F5G9l3xao6LEPh2Fbupvue8RAUIC"
     },
     "gold": {
       "status": "completed",
