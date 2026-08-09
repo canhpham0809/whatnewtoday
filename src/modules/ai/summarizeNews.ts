@@ -83,10 +83,13 @@ Nhiệm vụ của bạn:
 CHÚ Ý: Chỉ trả về chuỗi JSON hợp lệ, không kèm theo Markdown hay ký tự giải thích.`;
 
   try {
-    const model = genAI!.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const model = genAI!.getGenerativeModel(
+      {
+        model: MODEL_NAME,
+        generationConfig: { responseMimeType: "application/json" }
+      },
+      { timeout: 15000 }
+    );
     
     logger.info("Sending batch summarization request to Gemini API...", "AI-SUMMARIZE");
     const result = await model.generateContent(prompt);

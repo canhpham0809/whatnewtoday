@@ -58,7 +58,8 @@ const mockRssSources: RssSource[] = [
   { id: "77777777-7777-7777-7777-777777777777", name: "Thanh Niên Giải Trí", url: "https://thanhnien.vn/rss/giai-tri.rss", category: "Entertainment", active: true },
   { id: "88888888-8888-8888-8888-888888888888", name: "24h Tin Trong Ngày", url: "https://www.24h.com.vn/upload/rss/tintuctrongngay.rss", category: "Featured", active: true },
   { id: "99999999-9999-9999-9999-999999999999", name: "24h Giải Trí", url: "https://www.24h.com.vn/upload/rss/giaitri.rss", category: "Entertainment", active: true },
-  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Thể Thao 247", url: "https://thethao247.vn/trang-chu.rss", category: "Thể Thao", active: true },
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Thể Thao 247 Bóng Đá", url: "https://thethao247.vn/bong-da.rss", category: "Thể Thao", active: true },
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1", name: "VnExpress Thể Thao", url: "https://vnexpress.net/rss/the-thao.rss", category: "Thể Thao", active: true },
   { id: "10000000-0000-0000-0000-000000000001", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
   { id: "20000000-0000-0000-0000-000000000002", name: "24h Giá Vàng", url: "https://www.24h.com.vn/upload/rss/taichinh.rss", category: "Gold", active: true }
 ];
@@ -85,14 +86,10 @@ export const RssSourceRepository = {
       return mockRssSources.filter((s) => s.active);
     }
     
-    // Auto-wipe and re-seed on first run after logic change
+    // Auto-seed/sync sources on startup
     if (!hasMigratedSources) {
-      logger.info("Performing one-time wipe of old sources and re-seeding with new ones...", "REPO-RSS");
       hasMigratedSources = true;
       try {
-        const { error: delErr } = await supabase!.from("rss_sources").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-        if (delErr) logger.error("Delete error in migration", delErr);
-
         const seedData = mockRssSources.map((s) => ({
           id: s.id,
           name: s.name,
@@ -101,11 +98,13 @@ export const RssSourceRepository = {
           active: s.active
         }));
         
-        const { error: insErr } = await supabase!.from("rss_sources").insert(seedData);
-        if (insErr) logger.error("Insert error in migration", insErr);
-        else logger.success("Successfully replaced all RSS sources in Supabase.", "REPO-RSS");
+        const { error: insErr } = await supabase!
+          .from("rss_sources")
+          .upsert(seedData, { onConflict: "url" });
+        if (insErr) logger.error("Upsert error in RSS sources sync", insErr);
+        else logger.success("Successfully synchronized RSS sources in Supabase.", "REPO-RSS");
       } catch (err) {
-        logger.error("Failed to migrate RSS sources.", err, "REPO-RSS");
+        logger.error("Failed to sync RSS sources.", err, "REPO-RSS");
       }
     }
     
@@ -135,9 +134,8 @@ export const NewsArticleRepository = {
       logger.info(`Saving ${articles.length} articles to memory.`, "REPO-NEWS");
       const saved: NewsArticle[] = [];
       for (const art of articles) {
-        // Simple deduplication on URL for mock state
-        const exists = mockNewsArticles.some((x) => x.url === art.url);
-        if (!exists) {
+        const existing = mockNewsArticles.find((a) => a.url === art.url);
+        if (!existing) {
           const newArt: NewsArticle = {
             id: generateUUID(),
             ...art,
@@ -145,13 +143,15 @@ export const NewsArticleRepository = {
           };
           mockNewsArticles.push(newArt);
           saved.push(newArt);
+        } else {
+          existing.source_id = art.source_id;
         }
       }
       return saved;
     }
 
     logger.info(`Saving ${articles.length} articles to Supabase.`, "REPO-NEWS");
-    // Bulk upsert/insert with ON CONFLICT DO NOTHING
+    // Bulk upsert to ensure source_id is updated if previously null
     const { data, error } = await supabase!
       .from("news_articles")
       .upsert(
@@ -166,7 +166,7 @@ export const NewsArticleRepository = {
           normalized_title: a.normalized_title,
           normalized_content: a.normalized_content
         })),
-        { onConflict: "url", ignoreDuplicates: true }
+        { onConflict: "url", ignoreDuplicates: false }
       )
       .select();
 

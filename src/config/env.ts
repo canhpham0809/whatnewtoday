@@ -26,6 +26,10 @@ export interface Config {
   tiktokAccessToken: string;
   tiktokRefreshToken: string;
   isTiktokMock: boolean;
+
+  bufferAccessToken: string;
+  bufferProfileId: string;
+  isBufferMock: boolean;
   
   cronTime: string;
   nodeEnv: string;
@@ -33,6 +37,16 @@ export interface Config {
 
 function getEnv(key: string, defaultValue = ""): string {
   return process.env[key] || defaultValue;
+}
+
+function isConfigured(val: string): boolean {
+  if (!val) return false;
+  const trimmed = val.trim();
+  return (
+    trimmed !== "" &&
+    !trimmed.startsWith("your_") &&
+    !trimmed.endsWith("_here")
+  );
 }
 
 // Parse Google Private Key (handle escaped newlines)
@@ -47,17 +61,17 @@ function parsePrivateKey(key: string): string {
   return cleaned.replace(/\\n/g, "\n");
 }
 
-const hasServiceAccount = getEnv("GOOGLE_CLIENT_EMAIL") && getEnv("GOOGLE_PRIVATE_KEY");
-const hasOAuth2 = getEnv("GOOGLE_CLIENT_ID") && getEnv("GOOGLE_CLIENT_SECRET") && getEnv("GOOGLE_REFRESH_TOKEN");
-const hasFolder = getEnv("GOOGLE_DRIVE_FOLDER_ID");
+const hasServiceAccount = isConfigured(getEnv("GOOGLE_CLIENT_EMAIL")) && isConfigured(getEnv("GOOGLE_PRIVATE_KEY"));
+const hasOAuth2 = isConfigured(getEnv("GOOGLE_CLIENT_ID")) && isConfigured(getEnv("GOOGLE_CLIENT_SECRET")) && isConfigured(getEnv("GOOGLE_REFRESH_TOKEN"));
+const hasFolder = isConfigured(getEnv("GOOGLE_DRIVE_FOLDER_ID"));
 
 export const env: Config = {
   geminiApiKey: getEnv("GEMINI_API_KEY"),
-  isGeminiMock: !getEnv("GEMINI_API_KEY"),
+  isGeminiMock: !isConfigured(getEnv("GEMINI_API_KEY")),
   
   supabaseUrl: getEnv("SUPABASE_URL"),
   supabaseServiceRoleKey: getEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  isSupabaseMock: !getEnv("SUPABASE_URL") || !getEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  isSupabaseMock: !isConfigured(getEnv("SUPABASE_URL")) || !isConfigured(getEnv("SUPABASE_SERVICE_ROLE_KEY")),
   
   googleClientEmail: getEnv("GOOGLE_CLIENT_EMAIL"),
   googlePrivateKey: parsePrivateKey(getEnv("GOOGLE_PRIVATE_KEY")),
@@ -71,7 +85,11 @@ export const env: Config = {
   tiktokClientSecret: getEnv("TIKTOK_CLIENT_SECRET"),
   tiktokAccessToken: getEnv("TIKTOK_ACCESS_TOKEN"),
   tiktokRefreshToken: getEnv("TIKTOK_REFRESH_TOKEN"),
-  isTiktokMock: !getEnv("TIKTOK_ACCESS_TOKEN"),
+  isTiktokMock: !isConfigured(getEnv("TIKTOK_ACCESS_TOKEN")),
+
+  bufferAccessToken: getEnv("BUFFER_ACCESS_TOKEN"),
+  bufferProfileId: getEnv("BUFFER_PROFILE_ID"),
+  isBufferMock: !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID")),
   
   cronTime: getEnv("CRON_TIME", "0 8 * * *"),
   nodeEnv: getEnv("NODE_ENV", "development")
@@ -104,6 +122,12 @@ export function checkConfigAndLogWarnings(): void {
     logger.warn("TIKTOK_ACCESS_TOKEN is missing! Using Mock TikTok publisher (posting steps will be logged only).", "CONFIG");
   } else {
     logger.success("TikTok Creator API credentials loaded successfully. Live publishing enabled!", "CONFIG");
+  }
+
+  if (env.isBufferMock) {
+    logger.warn("BUFFER_ACCESS_TOKEN or BUFFER_PROFILE_ID is missing! Using Mock Buffer publisher.", "CONFIG");
+  } else {
+    logger.success("Buffer API credentials loaded successfully. Auto social publishing enabled!", "CONFIG");
   }
 }
 export default env;

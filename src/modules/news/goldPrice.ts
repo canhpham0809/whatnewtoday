@@ -567,7 +567,11 @@ export async function fetchGoldNewsArticles(limit: number = 5): Promise<NewsArti
     }
     
     if (candidates.length === 0) {
-      candidates = normalizedRaw;
+      candidates = normalizedRaw.map((a) => ({
+        id: `gold_tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        ...a,
+        created_at: new Date()
+      }));
     } else {
       candidates = candidates.map(c => {
         if (!c.thumbnail_url || c.thumbnail_url.trim() === "") {

@@ -3,6 +3,7 @@ import path from "path";
 import axios from "axios";
 import { env } from "../../config/env";
 import { logger } from "../../utils/logger";
+import { postVideoToBuffer } from "./buffer";
 
 export interface TikTokUploadResult {
   publishId: string;
@@ -11,19 +12,31 @@ export interface TikTokUploadResult {
 }
 
 /**
- * Automatically uploads a compiled MP4 video to TikTok using Content Posting API v2
+ * Automatically uploads a compiled MP4 video to TikTok using Buffer API or Direct TikTok API v2
  * @param videoPath Absolute local path to the compiled MP4 video
  * @param title Caption for the TikTok video (hashtags, description, etc.)
+ * @param videoUrl Optional public URL of video for Buffer API
  */
-export async function postVideoToTikTok(videoPath: string, title: string): Promise<TikTokUploadResult> {
-  const videoName = path.basename(videoPath);
-  
-  if (!fs.existsSync(videoPath)) {
-    throw new Error(`TikTok Upload Error: Local video file not found at: ${videoPath}`);
+export async function postVideoToTikTok(videoPath: string, title: string, mediaUrls?: string | string[]): Promise<TikTokUploadResult> {
+  // Option A: If Buffer API is configured, route via Buffer API
+  if (!env.isBufferMock) {
+    const assetCount = Array.isArray(mediaUrls) ? mediaUrls.length : (mediaUrls ? 1 : 0);
+    logger.info(`Routing TikTok publication via Buffer API (${assetCount} assets) for profile: "${env.bufferProfileId}"`, "TIKTOK-PUB");
+    const bufferRes = await postVideoToBuffer(title, mediaUrls);
+    return {
+      publishId: bufferRes.updateId,
+      shareUrl: bufferRes.shareUrl,
+      isMock: bufferRes.isMock
+    };
   }
 
-  const fileStats = fs.statSync(videoPath);
-  const videoSize = fileStats.size;
+  const videoName = videoPath ? path.basename(videoPath) : "slideshow.mp4";
+  
+  if (videoPath && !fs.existsSync(videoPath)) {
+    logger.warn(`Local video file not found at: ${videoPath}. Proceeding with mock publishing.`, "TIKTOK-PUB");
+  }
+
+  const videoSize = (videoPath && fs.existsSync(videoPath)) ? fs.statSync(videoPath).size : 1024 * 1024 * 5;
 
   logger.info(`Preparing TikTok publication for video: "${videoName}" (${(videoSize / 1024 / 1024).toFixed(2)} MB)`, "TIKTOK-PUB");
 

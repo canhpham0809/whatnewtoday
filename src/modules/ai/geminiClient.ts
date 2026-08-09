@@ -3,7 +3,7 @@ import env from "../../config/env";
 import { logger } from "../../utils/logger";
 
 let genAI: GoogleGenerativeAI | null = null;
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 if (!env.isGeminiMock) {
   try {

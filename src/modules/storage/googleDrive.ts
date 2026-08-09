@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import env from "../../config/env";
 import { logger } from "../../utils/logger";
+import { supabase } from "../database/supabaseClient";
 
 /**
  * Creates a Google Drive folder under the configured root or an explicit parent folder.
@@ -182,7 +183,7 @@ export async function uploadNewsReleaseToGoogleDrive(
   videoFileName: string,
   localSlidesDir: string,
   parentFolderId?: string
-): Promise<{ folderId: string; webViewUrl: string }> {
+): Promise<{ folderId: string; webViewUrl: string; coverImageUrl?: string; slideImageUrls?: string[] }> {
   logger.info(`Starting Release upload to Google Drive. Target folder: ${folderName}`, "STORAGE-DRIVE");
 
   if (env.isDriveMock) {
@@ -271,6 +272,8 @@ export async function uploadNewsReleaseToGoogleDrive(
     }
 
     // 4. Upload Slide PNGs
+    let coverImageUrl: string | undefined;
+    const slideImageUrls: string[] = [];
     if (fs.existsSync(localSlidesDir)) {
       const slideFiles = fs.readdirSync(localSlidesDir)
         .filter((f) => (f.startsWith("slide_") || f === "cover.png") && f.endsWith(".png"))
@@ -287,19 +290,64 @@ export async function uploadNewsReleaseToGoogleDrive(
           mimeType: "image/png",
           body: fs.createReadStream(slidePath)
         };
-        await drive.files.create({
-          requestBody: slideMetadata,
-          media: slideMedia,
-          fields: "id"
-        });
-        logger.info(`Uploaded slide: ${slideFile}`, "STORAGE-DRIVE");
+        try {
+          // A. Google Drive Upload
+          const uploadedFile = await drive.files.create({
+            requestBody: slideMetadata,
+            media: slideMedia,
+            fields: "id, webViewLink, webContentLink"
+          });
+
+          // B. Supabase Storage Public CDN Upload (100% reliable for Buffer API)
+          let finalPublicUrl: string | undefined;
+          if (!env.isSupabaseMock && supabase) {
+            try {
+              const fileBuf = fs.readFileSync(slidePath);
+              const storagePath = `slides_${folderId.slice(0, 8)}_${Date.now()}/${slideFile}`;
+              const { data: supaData } = await supabase.storage
+                .from("news-slides")
+                .upload(storagePath, fileBuf, { contentType: "image/png", upsert: true });
+
+              if (supaData?.path) {
+                const { data: pUrlData } = supabase.storage.from("news-slides").getPublicUrl(storagePath);
+                if (pUrlData?.publicUrl) {
+                  finalPublicUrl = pUrlData.publicUrl;
+                }
+              }
+            } catch (supaErr: any) {
+              logger.warn(`Supabase Storage upload fallback to Drive URL (${supaErr.message})`, "STORAGE-DRIVE");
+            }
+          }
+
+          if (!finalPublicUrl && uploadedFile.data?.id) {
+            finalPublicUrl = `https://lh3.googleusercontent.com/d/${uploadedFile.data.id}`;
+          }
+
+          if (finalPublicUrl) {
+            slideImageUrls.push(finalPublicUrl);
+            if (slideFile === "cover.png" || !coverImageUrl) {
+              coverImageUrl = finalPublicUrl;
+            }
+          }
+          logger.info(`Uploaded slide: ${slideFile}`, "STORAGE-DRIVE");
+        } catch (slideErr: any) {
+          logger.warn(`Could not upload ${slideFile} to Drive (${slideErr.message})`, "STORAGE-DRIVE");
+        }
       }
-      logger.success("All slide images uploaded successfully.", "STORAGE-DRIVE");
+      logger.success(`Slide images processing complete. Collected ${slideImageUrls.length} direct image URLs.`, "STORAGE-DRIVE");
     }
 
-    return { folderId, webViewUrl: folderUrl };
+    return { folderId, webViewUrl: folderUrl, coverImageUrl, slideImageUrls };
   } catch (error: any) {
     logger.error("Failed to upload news release folder to Google Drive.", error, "STORAGE-DRIVE");
+    if (error.message?.includes("storage quota") || error.message?.includes("File not found") || error.code === 404) {
+      logger.warn(
+        `💡 HƯỚNG DẪN FIX GOOGLE DRIVE:\n` +
+        `Email Service Account '${env.googleClientEmail}' chưa được cấp quyền chỉnh sửa trong thư mục Google Drive (ID: ${env.googleDriveFolderId || 'chưa cấu hình'}).\n` +
+        `Vui lòng truy cập Google Drive -> Chuột phải thư mục '${env.googleDriveFolderId}' -> Chọn 'Chia sẻ' (Share) -> Thêm email '${env.googleClientEmail}' với quyền 'Người chỉnh sửa' (Editor).`,
+        "STORAGE-DRIVE"
+      );
+    }
     return {
       folderId: `failed-folder-id-${Date.now()}`,
       webViewUrl: `https://drive.google.com/failed/folder/d/failed-folder-id-${Date.now()}`

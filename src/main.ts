@@ -21,6 +21,7 @@ import { createDriveFolder, uploadNewsReleaseToGoogleDrive } from "./modules/sto
 import { scrapeGoldPrices } from "./modules/news/goldPrice";
 import { PipelineTracker, TopicKey } from "./utils/pipelineTracker";
 import { getVietnamTime } from "./utils/date";
+import { postVideoToTikTok } from "./modules/social/tiktok";
 
 // ─── Topic definitions ────────────────────────────────────────────────────────
 interface TopicDef {
@@ -241,9 +242,14 @@ export async function runWorkflow(): Promise<void> {
         
         if (topicSourceIds && topicSourceIds.size > 0) {
           const topicArts = filteredPreScored.filter(a => a.source_id && topicSourceIds.has(a.source_id));
-          const otherArts = filteredPreScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
-          poolForRanking = [...topicArts, ...otherArts];
-          logger.info(`[${topic.key.toUpperCase()}] Pool: ${topicArts.length} dedicated-source articles boosted to top.`, "WORKFLOW");
+          if (topicArts.length >= topic.topN) {
+            poolForRanking = topicArts;
+            logger.info(`[${topic.key.toUpperCase()}] Pool strictly restricted to ${topicArts.length} dedicated-source articles.`, "WORKFLOW");
+          } else {
+            const otherArts = filteredPreScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
+            poolForRanking = [...topicArts, ...otherArts];
+            logger.info(`[${topic.key.toUpperCase()}] Pool: ${topicArts.length} dedicated-source articles boosted to top (backfilled with ${otherArts.length} general articles).`, "WORKFLOW");
+          }
         }
 
         const categoryRanked = await rankNewsByCategory(poolForRanking, topic.labelVi, topic.topN, sourceMap);
@@ -277,10 +283,16 @@ export async function runWorkflow(): Promise<void> {
         prepareOutputDir(outputDir);
 
         await renderNewsArticlesToImages(renderArticles, { outputDir, sources, coverArticle: coverSlide, coverCategory: topic.coverCategory });
-        PipelineTracker.updateTopicProgress(topic.key, { percentage: 80, message: "Đang upload lên Google Drive..." });
-
         const driveFolderName = `${videoTitle} - ${timeStr} - ${topic.labelVi}`;
         const uploadResult = await uploadNewsReleaseToGoogleDrive(driveFolderName, "", "", outputDir, rootDriveFolder.folderId);
+        
+        // Auto-post topic slides to Buffer/TikTok
+        const topicCaption = `Bản tin ${topic.labelVi} ngày ${dd}/${mm}/${yyyy} #tinnhanh #${topic.folderSlug} #whatnew`;
+        const topicMedia = (uploadResult.slideImageUrls && uploadResult.slideImageUrls.length > 0)
+          ? uploadResult.slideImageUrls
+          : (uploadResult.coverImageUrl || rootDriveFolder.webViewUrl);
+        await postVideoToTikTok("", topicCaption, topicMedia);
+
         PipelineTracker.updateTopicProgress(topic.key, { status: "completed", percentage: 100, slideCount: renderArticles.length, driveUrl: rootDriveFolder.webViewUrl });
         logger.success(`[${topic.key.toUpperCase()}] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
       } catch (err: any) {
@@ -310,6 +322,13 @@ export async function runWorkflow(): Promise<void> {
 
       const goldDriveFolderName = `${videoTitle} - ${timeStr} - Giá Vàng`;
       const goldUploadResult = await uploadNewsReleaseToGoogleDrive(goldDriveFolderName, "", "", goldOutputDir, rootDriveFolder.folderId);
+      
+      const batchGoldCaption = `Bản tin Giá Vàng ngày ${dd}/${mm}/${yyyy} #giavang #taichinh #whatnew`;
+      const batchGoldMedia = (goldUploadResult.slideImageUrls && goldUploadResult.slideImageUrls.length > 0)
+        ? goldUploadResult.slideImageUrls
+        : (goldUploadResult.coverImageUrl || rootDriveFolder.webViewUrl);
+      await postVideoToTikTok("", batchGoldCaption, batchGoldMedia);
+
       PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: 6, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
@@ -395,7 +414,15 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
 
       PipelineTracker.updateTopicProgress("gold", { percentage: 80, message: "Đang upload lên Google Drive..." });
       const rootFolder = await createDriveFolder(videoTitle);
-      await uploadNewsReleaseToGoogleDrive(`${videoTitle} - Giá Vàng`, "", "", goldOutputDir, rootFolder.folderId);
+      const goldUploadRes = await uploadNewsReleaseToGoogleDrive(`${videoTitle} - Giá Vàng`, "", "", goldOutputDir, rootFolder.folderId);
+
+      PipelineTracker.updateTopicProgress("gold", { percentage: 90, message: "Đang tự động đăng bài qua Buffer/TikTok..." });
+      PipelineTracker.updateProgress({ step: "posting_tiktok", stepName: "Tự Động Đăng Social", percentage: 90 });
+      const goldCaption = `Bản tin Giá Vàng ngày ${dd}/${mm}/${yyyy} #giavang #taichinh #whatnew`;
+      const goldMedia = (goldUploadRes.slideImageUrls && goldUploadRes.slideImageUrls.length > 0)
+        ? goldUploadRes.slideImageUrls
+        : (goldUploadRes.coverImageUrl || rootFolder.webViewUrl);
+      await postVideoToTikTok("", goldCaption, goldMedia);
 
       PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootFolder.webViewUrl });
       PipelineTracker.updateProgress({ status: "completed", step: "idle", stepName: "Hệ thống đang chờ", percentage: 100, message: `✅ Hoàn tất Giá Vàng sau ${((Date.now() - startTime) / 60000).toFixed(1)} phút!` });
@@ -455,13 +482,30 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
     } else {
       let pool = preScored;
       const topicSourceIds = sourceCategoryMap[topicDef.key];
+      const matchedSourceNames = Array.from(topicSourceIds || []).map(id => sourceMap[id] || id).join(', ');
+      logger.info(`[DEBUG-${topicDef.key.toUpperCase()}] Category '${topicDef.labelVi}' mapped sources: ${matchedSourceNames}`, "WORKFLOW");
+
       if (topicSourceIds && topicSourceIds.size > 0) {
         const topicArts = preScored.filter(a => a.source_id && topicSourceIds.has(a.source_id));
-        const otherArts = preScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
-        pool = [...topicArts, ...otherArts];
-        logger.info(`[${topicDef.key.toUpperCase()}] Boosted ${topicArts.length} dedicated-source articles.`, "WORKFLOW");
+        logger.info(`[DEBUG-${topicDef.key.toUpperCase()}] Articles from dedicated sources: ${topicArts.length} / Total candidates: ${preScored.length}`, "WORKFLOW");
+
+        if (topicArts.length >= topicDef.topN) {
+          pool = topicArts;
+          logger.info(`[${topicDef.key.toUpperCase()}] Pool strictly restricted to ${topicArts.length} dedicated-source articles.`, "WORKFLOW");
+        } else {
+          const otherArts = preScored.filter(a => !a.source_id || !topicSourceIds.has(a.source_id));
+          pool = [...topicArts, ...otherArts];
+          logger.info(`[${topicDef.key.toUpperCase()}] Pool: ${topicArts.length} dedicated-source articles boosted to top (backfilled with ${otherArts.length} general articles).`, "WORKFLOW");
+        }
       }
       rankedArticles = await rankNewsByCategory(pool, topicDef.labelVi, topicDef.topN, sourceMap);
+    }
+
+    logger.info(`[DEBUG-${topicDef.key.toUpperCase()}] Final ${rankedArticles.length} ranked articles:`, "WORKFLOW");
+    for (let i = 0; i < rankedArticles.length; i++) {
+      const art = rankedArticles[i];
+      const srcName = art.source_id ? (sourceMap[art.source_id] || art.source_id) : "N/A (Null Source ID)";
+      logger.info(`  Slide ${i+1}: "${art.title}" (Source: ${srcName})`, "WORKFLOW");
     }
 
     if (rankedArticles.length === 0) {
@@ -496,7 +540,15 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 80, message: "Đang upload lên Google Drive..." });
     const rootFolder = await createDriveFolder(videoTitle);
-    await uploadNewsReleaseToGoogleDrive(`${videoTitle} - ${topicDef.labelVi}`, "", "", outputDir, rootFolder.folderId);
+    const uploadRes = await uploadNewsReleaseToGoogleDrive(`${videoTitle} - ${topicDef.labelVi}`, "", "", outputDir, rootFolder.folderId);
+
+    PipelineTracker.updateTopicProgress(topicKey as TopicKey, { percentage: 90, message: "Đang tự động đăng bài qua Buffer/TikTok..." });
+    PipelineTracker.updateProgress({ step: "posting_tiktok", stepName: "Tự Động Đăng Social", percentage: 90 });
+    const socialCaption = `Bản tin ${topicDef.labelVi} ngày ${dd}/${mm}/${yyyy} #tinnhanh #${topicDef.folderSlug} #whatnew`;
+    const targetMedia = (uploadRes.slideImageUrls && uploadRes.slideImageUrls.length > 0) 
+      ? uploadRes.slideImageUrls 
+      : (uploadRes.coverImageUrl || rootFolder.webViewUrl);
+    await postVideoToTikTok("", socialCaption, targetMedia);
 
     PipelineTracker.updateTopicProgress(topicKey as TopicKey, {
       status: "completed", percentage: 100,

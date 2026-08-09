@@ -61,10 +61,13 @@ Nhiệm vụ của bạn:
 CHÚ Ý: Chỉ trả về JSON hợp lệ, không có Markdown hay ký tự dư thừa.`;
 
   try {
-    const model = genAI!.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const model = genAI!.getGenerativeModel(
+      {
+        model: MODEL_NAME,
+        generationConfig: { responseMimeType: "application/json" }
+      },
+      { timeout: 15000 }
+    );
 
     logger.info(`Sending category ranking request to Gemini API for [${categoryVi}]...`, "AI-RANK");
     const result = await model.generateContent(prompt);

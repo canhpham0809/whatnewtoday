@@ -1,53 +1,53 @@
 {
-  "jobId": "job_1779331855099",
+  "jobId": "job_1786269826843",
   "step": "idle",
   "stepName": "Hệ thống đang chờ",
   "percentage": 100,
   "status": "completed",
-  "message": "✅ Hoàn tất Giá Vàng sau 0.8 phút!",
-  "lastUpdated": "2026-05-21T02:51:45.850Z",
+  "message": "✅ Hoàn tất Giá Vàng sau 1.2 phút!",
+  "lastUpdated": "2026-08-09T10:04:56.303Z",
   "topics": {
     "general": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 21,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1fe9CqVGHf-mPsnqVoHdbFaCigdE1b4V-"
+      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
     },
     "sports": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/13s6x_2jnpZ2Fv113aGa6YLrHK4pctP4s"
+      "message": "Đang tự động đăng bài qua Buffer/TikTok...",
+      "driveUrl": "https://drive.google.com/drive/folders/1x46TjEL9OgKYw2XCRK-O3FTt9i1Zi1mB"
     },
     "politics": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1pvUY06plfx1ObjNsUcbotd6nwPoU_C01"
+      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
     },
     "society": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1O_tbEstwzUCMGWseg1_CxxeDtwyETU5P"
+      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
     },
     "entertainment": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 11,
       "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1kAtFjz6Pw46356ZX8rP3iVwoe3fTmiR1"
+      "driveUrl": "https://drive.google.com/drive/folders/17fCHuPdhiIBHbbgHCTz1razHtOLnwobv"
     },
     "gold": {
       "status": "completed",
       "percentage": 100,
       "slideCount": 6,
-      "message": "Đang upload lên Google Drive...",
-      "driveUrl": "https://drive.google.com/drive/folders/1ssgyRLxmCE2Ua8_kg9FDNvENo6TShgr6"
+      "message": "Đang tự động đăng bài qua Buffer/TikTok...",
+      "driveUrl": "https://drive.google.com/drive/folders/19_ho_moEt3kHFYfwDxu3Egs5l0aWnRm5"
     }
   }
 }

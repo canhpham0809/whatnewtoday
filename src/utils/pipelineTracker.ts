@@ -95,10 +95,14 @@ export const PipelineTracker = {
       let current: PipelineProgress = this.getProgress();
       if (!current.topics) current.topics = { ...DEFAULT_TOPICS };
 
-      current.topics[topic] = {
+      const newTopicProgress = {
         ...current.topics[topic],
         ...topicProgress
       };
+      if (!topicProgress.error && (topicProgress.status === "completed" || topicProgress.status === "running" || topicProgress.status === "idle")) {
+        delete newTopicProgress.error;
+      }
+      current.topics[topic] = newTopicProgress;
       current.lastUpdated = new Date().toISOString();
 
       fs.writeFileSync(STATE_FILE_PATH, JSON.stringify(current, null, 2), "utf-8");
