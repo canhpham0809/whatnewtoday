@@ -2,11 +2,11 @@
   {
     "store": "Vàng Thế Giới",
     "storeEn": "world",
-    "worldUSD": "$4,414.73",
-    "worldVND": "115,317,162",
+    "worldUSD": "$4,419.61",
+    "worldVND": "115,444,633",
     "worldRateBuy": "26,121",
     "worldRateSell": "26,391",
-    "worldChange": "-9.65",
+    "worldChange": "+4.88",
     "worldRateChangeBuy": "-",
     "worldRateChangeSell": "-"
   },
@@ -14,44 +14,44 @@
     "store": "Vàng SJC",
     "storeEn": "sjc",
     "nhaN": {
-      "buy": "14,200",
-      "sell": "14,510",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "14,150",
+      "sell": "14,460",
+      "changeBuy": "-50",
+      "changeSell": "-50"
     },
     "vang998": {
-      "buy": "13,507",
-      "sell": "14,207",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "13,458",
+      "sell": "14,158",
+      "changeBuy": "-49",
+      "changeSell": "-49"
     },
     "vang999": {
-      "buy": "14,250",
-      "sell": "14,550",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "14,200",
+      "sell": "14,500",
+      "changeBuy": "-50",
+      "changeSell": "-50"
     }
   },
   {
     "store": "Vàng PNJ",
     "storeEn": "pnj",
     "nhaN": {
-      "buy": "14,150",
-      "sell": "14,540",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "14,100",
+      "sell": "14,490",
+      "changeBuy": "-50",
+      "changeSell": "-50"
     },
     "vang998": {
-      "buy": "13,906",
-      "sell": "14,406",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "13,876",
+      "sell": "14,376",
+      "changeBuy": "-30",
+      "changeSell": "-30"
     },
     "vang999": {
-      "buy": "14,150",
-      "sell": "14,540",
-      "changeBuy": "-",
-      "changeSell": "-"
+      "buy": "14,100",
+      "sell": "14,490",
+      "changeBuy": "-50",
+      "changeSell": "-50"
     }
   },
   {
@@ -88,8 +88,8 @@
     "vang998": {
       "buy": "12,950",
       "sell": "13,150",
-      "changeBuy": "+200",
-      "changeSell": "+200"
+      "changeBuy": "-",
+      "changeSell": "-"
     },
     "vang999": {
       "buy": "14,250",

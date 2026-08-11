@@ -69,11 +69,17 @@ export async function renderNewsArticlesToImages(
   }
   
   logger.info(`Opening Chromium browser with Playwright...`, "RENDER-PNG");
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-  
-  // Enforce the 1080x1920 vertical mobile viewport
-  await page.setViewportSize({ width: 1080, height: 1920 });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-web-security", "--ignore-certificate-errors"]
+  });
+  const context = await browser.newContext({
+    viewport: { width: 1080, height: 1920 },
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    bypassCSP: true,
+    ignoreHTTPSErrors: true
+  });
+  const page = await context.newPage();
   
   const imagePaths: string[] = [];
   const fileUrl = `file://${templatePath}`;
@@ -238,9 +244,17 @@ export async function renderGoldPriceSlides(
   }
   
   const templatePath = path.resolve(__dirname, "../../templates/news-card.html");
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.setViewportSize({ width: 1080, height: 1920 });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-web-security", "--ignore-certificate-errors"]
+  });
+  const context = await browser.newContext({
+    viewport: { width: 1080, height: 1920 },
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    bypassCSP: true,
+    ignoreHTTPSErrors: true
+  });
+  const page = await context.newPage();
   await page.goto(`file://${templatePath}`);
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1000);
