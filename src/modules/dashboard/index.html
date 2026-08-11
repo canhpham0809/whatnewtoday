@@ -99,6 +99,49 @@
       100% { transform: scale(0.9); opacity: 0.6; }
     }
 
+    /* Integrated Social Channel Badge */
+    .channel-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.18);
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.05);
+    }
+
+    .channel-icon {
+      font-size: 16px;
+    }
+
+    .channel-details {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .channel-type {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .channel-name {
+      color: var(--cyan);
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 0.3px;
+    }
+
+    .channel-id {
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 11px;
+      font-family: monospace;
+    }
+
     /* Dashboard Layout Grid */
     .dashboard-grid {
       display: grid;
@@ -821,9 +864,19 @@
         <h1>WhatNew AI Auto Publisher</h1>
         <p>Bảng điều khiển giám sát luồng sinh video thời sự và đăng tải tự động lên mạng xã hội</p>
       </div>
-      <div class="status-badge">
-        <div class="status-dot"></div>
-        <span>HỆ THỐNG ONLINE</span>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="channel-badge" id="channel-badge" title="Kênh TikTok đang được liên kết qua Buffer API">
+          <span class="channel-icon">🎵</span>
+          <div class="channel-details">
+            <span class="channel-type">Kênh Social:</span>
+            <span id="txt-channel-name" class="channel-name">Connecting...</span>
+            <span id="txt-channel-id" class="channel-id"></span>
+          </div>
+        </div>
+        <div class="status-badge">
+          <div class="status-dot"></div>
+          <span>HỆ THỐNG ONLINE</span>
+        </div>
       </div>
     </header>
 
@@ -854,6 +907,10 @@
 
           <!-- Active Details -->
           <div class="status-details">
+            <div class="detail-row">
+              <span class="detail-label">Kênh đăng bài:</span>
+              <span id="txt-detail-channel" class="detail-val" style="color: var(--cyan);">Đang tải...</span>
+            </div>
             <div class="detail-row">
               <span class="detail-label">Trạng thái:</span>
               <span id="txt-sys-status" class="detail-val">Chờ khởi chạy</span>
@@ -1047,6 +1104,17 @@
         const fillOffset = CIRCLE_LENGTH - (CIRCLE_LENGTH * percent) / 100;
         document.getElementById("gauge-fill-bar").style.strokeDashoffset = fillOffset;
         document.getElementById("gauge-percent-text").textContent = percent + "%";
+
+        // Update active integrated channel info
+        if (status.channelInfo) {
+          const ch = status.channelInfo;
+          document.getElementById("txt-channel-name").textContent = ch.name || "whatnewtoday02";
+          document.getElementById("txt-channel-id").textContent = ch.id ? `(${ch.id.substring(0, 8)}...)` : "";
+          const detailEl = document.getElementById("txt-detail-channel");
+          if (detailEl) {
+            detailEl.textContent = `${ch.name} (${ch.service || 'TikTok'})`;
+          }
+        }
 
         // Update active texts
         const isRunning = status.isSystemRunning;

@@ -6,6 +6,7 @@ import { PipelineTracker } from "../../utils/pipelineTracker";
 import { RenderJobRepository, VideoHistoryRepository, ScheduleRepository, ScheduleEntry } from "../database/repositories";
 import { runWorkflow, runTopicWorkflow } from "../../main";
 import { initScheduleManager, reloadSchedule, removeSchedule, setExternalWorkflowRunning } from "../scheduler/scheduleManager";
+import { getBufferChannelInfo } from "../social/buffer";
 
 let PORT = Number(process.env.PORT) || 3000;
 let isWorkflowRunning = false;
@@ -61,9 +62,11 @@ const server = http.createServer(async (req, res) => {
   if (url === "/api/status" && method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     const progress = PipelineTracker.getProgress();
+    const channelInfo = await getBufferChannelInfo();
     res.end(JSON.stringify({
       ...progress,
-      isSystemRunning: isWorkflowRunning
+      isSystemRunning: isWorkflowRunning,
+      channelInfo
     }));
     return;
   }

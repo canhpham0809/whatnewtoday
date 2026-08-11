@@ -36,6 +36,7 @@ export interface Config {
 }
 
 function getEnv(key: string, defaultValue = ""): string {
+  dotenv.config({ override: true });
   return process.env[key] || defaultValue;
 }
 
@@ -61,38 +62,39 @@ function parsePrivateKey(key: string): string {
   return cleaned.replace(/\\n/g, "\n");
 }
 
-const hasServiceAccount = isConfigured(getEnv("GOOGLE_CLIENT_EMAIL")) && isConfigured(getEnv("GOOGLE_PRIVATE_KEY"));
-const hasOAuth2 = isConfigured(getEnv("GOOGLE_CLIENT_ID")) && isConfigured(getEnv("GOOGLE_CLIENT_SECRET")) && isConfigured(getEnv("GOOGLE_REFRESH_TOKEN"));
-const hasFolder = isConfigured(getEnv("GOOGLE_DRIVE_FOLDER_ID"));
-
 export const env: Config = {
-  geminiApiKey: getEnv("GEMINI_API_KEY"),
-  isGeminiMock: !isConfigured(getEnv("GEMINI_API_KEY")),
+  get geminiApiKey() { return getEnv("GEMINI_API_KEY"); },
+  get isGeminiMock() { return !isConfigured(getEnv("GEMINI_API_KEY")); },
   
-  supabaseUrl: getEnv("SUPABASE_URL"),
-  supabaseServiceRoleKey: getEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  isSupabaseMock: !isConfigured(getEnv("SUPABASE_URL")) || !isConfigured(getEnv("SUPABASE_SERVICE_ROLE_KEY")),
+  get supabaseUrl() { return getEnv("SUPABASE_URL"); },
+  get supabaseServiceRoleKey() { return getEnv("SUPABASE_SERVICE_ROLE_KEY"); },
+  get isSupabaseMock() { return !isConfigured(getEnv("SUPABASE_URL")) || !isConfigured(getEnv("SUPABASE_SERVICE_ROLE_KEY")); },
   
-  googleClientEmail: getEnv("GOOGLE_CLIENT_EMAIL"),
-  googlePrivateKey: parsePrivateKey(getEnv("GOOGLE_PRIVATE_KEY")),
-  googleClientId: getEnv("GOOGLE_CLIENT_ID"),
-  googleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
-  googleRefreshToken: getEnv("GOOGLE_REFRESH_TOKEN"),
-  googleDriveFolderId: getEnv("GOOGLE_DRIVE_FOLDER_ID"),
-  isDriveMock: !(hasFolder && (hasServiceAccount || hasOAuth2)),
+  get googleClientEmail() { return getEnv("GOOGLE_CLIENT_EMAIL"); },
+  get googlePrivateKey() { return parsePrivateKey(getEnv("GOOGLE_PRIVATE_KEY")); },
+  get googleClientId() { return getEnv("GOOGLE_CLIENT_ID"); },
+  get googleClientSecret() { return getEnv("GOOGLE_CLIENT_SECRET"); },
+  get googleRefreshToken() { return getEnv("GOOGLE_REFRESH_TOKEN"); },
+  get googleDriveFolderId() { return getEnv("GOOGLE_DRIVE_FOLDER_ID"); },
+  get isDriveMock() {
+    const hasServiceAccount = isConfigured(getEnv("GOOGLE_CLIENT_EMAIL")) && isConfigured(getEnv("GOOGLE_PRIVATE_KEY"));
+    const hasOAuth2 = isConfigured(getEnv("GOOGLE_CLIENT_ID")) && isConfigured(getEnv("GOOGLE_CLIENT_SECRET")) && isConfigured(getEnv("GOOGLE_REFRESH_TOKEN"));
+    const hasFolder = isConfigured(getEnv("GOOGLE_DRIVE_FOLDER_ID"));
+    return !(hasFolder && (hasServiceAccount || hasOAuth2));
+  },
 
-  tiktokClientKey: getEnv("TIKTOK_CLIENT_KEY"),
-  tiktokClientSecret: getEnv("TIKTOK_CLIENT_SECRET"),
-  tiktokAccessToken: getEnv("TIKTOK_ACCESS_TOKEN"),
-  tiktokRefreshToken: getEnv("TIKTOK_REFRESH_TOKEN"),
-  isTiktokMock: !isConfigured(getEnv("TIKTOK_ACCESS_TOKEN")),
+  get tiktokClientKey() { return getEnv("TIKTOK_CLIENT_KEY"); },
+  get tiktokClientSecret() { return getEnv("TIKTOK_CLIENT_SECRET"); },
+  get tiktokAccessToken() { return getEnv("TIKTOK_ACCESS_TOKEN"); },
+  get tiktokRefreshToken() { return getEnv("TIKTOK_REFRESH_TOKEN"); },
+  get isTiktokMock() { return !isConfigured(getEnv("TIKTOK_ACCESS_TOKEN")); },
 
-  bufferAccessToken: getEnv("BUFFER_ACCESS_TOKEN"),
-  bufferProfileId: getEnv("BUFFER_PROFILE_ID"),
-  isBufferMock: !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID")),
+  get bufferAccessToken() { return getEnv("BUFFER_ACCESS_TOKEN"); },
+  get bufferProfileId() { return getEnv("BUFFER_PROFILE_ID"); },
+  get isBufferMock() { return !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID")); },
   
-  cronTime: getEnv("CRON_TIME", "0 8 * * *"),
-  nodeEnv: getEnv("NODE_ENV", "development")
+  get cronTime() { return getEnv("CRON_TIME", "0 8 * * *"); },
+  get nodeEnv() { return getEnv("NODE_ENV", "development"); }
 };
 
 // Log warning details about fallback modes if credentials are not configured
@@ -114,7 +116,7 @@ export function checkConfigAndLogWarnings(): void {
   if (env.isDriveMock) {
     logger.warn("GOOGLE_DRIVE_FOLDER_ID or Google credentials missing! Using Mock Google Drive (files saved locally in output/ only).", "CONFIG");
   } else {
-    const method = hasOAuth2 ? "OAuth 2.0 (Gmail 5TB Account)" : "Service Account JSON";
+    const method = isConfigured(env.googleClientId) ? "OAuth 2.0 (Gmail 5TB Account)" : "Service Account JSON";
     logger.success(`Google Drive API configuration loaded successfully. Mode: ${method}`, "CONFIG");
   }
 

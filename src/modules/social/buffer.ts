@@ -8,6 +8,64 @@ export interface BufferPostResult {
   isMock: boolean;
 }
 
+export interface BufferChannelInfo {
+  id: string;
+  name: string;
+  service: string;
+}
+
+let cachedChannelMap: Record<string, BufferChannelInfo> = {};
+let lastChannelFetch = 0;
+
+/**
+ * Queries Buffer GraphQL API to retrieve active channel details (e.g. name, service) for current env.bufferProfileId
+ */
+export async function getBufferChannelInfo(): Promise<BufferChannelInfo> {
+  const profileId = env.bufferProfileId;
+  const token = env.bufferAccessToken;
+
+  if (!profileId || env.isBufferMock) {
+    return { id: profileId || "MOCK", name: "Mock Channel", service: "tiktok" };
+  }
+
+  // Return cached result if fetched less than 2 minutes ago
+  if (cachedChannelMap[profileId] && (Date.now() - lastChannelFetch < 120000)) {
+    return cachedChannelMap[profileId];
+  }
+
+  try {
+    const orgQuery = `query { account { organizations { id } } }`;
+    const orgRes = await axios.post("https://api.buffer.com/graphql", { query: orgQuery }, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 10000
+    });
+    const orgId = orgRes.data?.data?.account?.organizations?.[0]?.id;
+
+    if (orgId) {
+      const chQuery = `query { channels(input: { organizationId: "${orgId}" }) { id name service } }`;
+      const chRes = await axios.post("https://api.buffer.com/graphql", { query: chQuery }, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
+      });
+      const channels: any[] = chRes.data?.data?.channels || [];
+      const found = channels.find((c: any) => c.id === profileId);
+      if (found) {
+        const info = { id: found.id, name: found.name, service: found.service };
+        cachedChannelMap[profileId] = info;
+        lastChannelFetch = Date.now();
+        return info;
+      }
+    }
+  } catch (err: any) {
+    logger.debug(`Could not query Buffer channel details: ${err.message}`, "BUFFER");
+  }
+
+  // Fallback default info
+  const fallback = { id: profileId, name: "whatnewtoday02", service: "tiktok" };
+  cachedChannelMap[profileId] = fallback;
+  return fallback;
+}
+
 /**
  * Automatically posts/schedules a video or multi-image carousel to Buffer connected profiles
  * @param caption Text caption for the post (including hashtags)
