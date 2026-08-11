@@ -31,6 +31,7 @@ export interface Config {
   bufferProfileId: string;
   isBufferMock: boolean;
   
+  enableScheduler: boolean;
   cronTime: string;
   nodeEnv: string;
 }
@@ -93,6 +94,7 @@ export const env: Config = {
   get bufferProfileId() { return getEnv("BUFFER_PROFILE_ID"); },
   get isBufferMock() { return !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID")); },
   
+  get enableScheduler() { return getEnv("ENABLE_SCHEDULER", "true").toLowerCase() !== "false"; },
   get cronTime() { return getEnv("CRON_TIME", "0 8 * * *"); },
   get nodeEnv() { return getEnv("NODE_ENV", "development"); }
 };

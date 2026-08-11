@@ -2,11 +2,11 @@
   {
     "store": "Vàng Thế Giới",
     "storeEn": "world",
-    "worldUSD": "$4,419.61",
-    "worldVND": "115,444,633",
+    "worldUSD": "$4,405.24",
+    "worldVND": "115,069,274",
     "worldRateBuy": "26,121",
     "worldRateSell": "26,391",
-    "worldChange": "+4.88",
+    "worldChange": "-14.37",
     "worldRateChangeBuy": "-",
     "worldRateChangeSell": "-"
   },
@@ -16,20 +16,20 @@
     "nhaN": {
       "buy": "14,150",
       "sell": "14,460",
-      "changeBuy": "-50",
-      "changeSell": "-50"
+      "changeBuy": "-",
+      "changeSell": "-"
     },
     "vang998": {
       "buy": "13,458",
       "sell": "14,158",
-      "changeBuy": "-49",
-      "changeSell": "-49"
+      "changeBuy": "-",
+      "changeSell": "-"
     },
     "vang999": {
       "buy": "14,200",
       "sell": "14,500",
-      "changeBuy": "-50",
-      "changeSell": "-50"
+      "changeBuy": "-",
+      "changeSell": "-"
     }
   },
   {
@@ -38,20 +38,20 @@
     "nhaN": {
       "buy": "14,100",
       "sell": "14,490",
-      "changeBuy": "-50",
-      "changeSell": "-50"
+      "changeBuy": "-",
+      "changeSell": "-"
     },
     "vang998": {
       "buy": "13,876",
       "sell": "14,376",
-      "changeBuy": "-30",
-      "changeSell": "-30"
+      "changeBuy": "-",
+      "changeSell": "-"
     },
     "vang999": {
       "buy": "14,100",
       "sell": "14,490",
-      "changeBuy": "-50",
-      "changeSell": "-50"
+      "changeBuy": "-",
+      "changeSell": "-"
     }
   },
   {

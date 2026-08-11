@@ -1,6 +1,7 @@
 import cron, { ScheduledTask } from "node-cron";
-import { ScheduleRepository, ScheduleEntry } from "../database/repositories";
+import { ScheduleRepository, RenderJobRepository, ScheduleEntry } from "../database/repositories";
 import { logger } from "../../utils/logger";
+import { env } from "../../config/env";
 import { runWorkflow } from "../../main";
 
 // Map from schedule id → active ScheduledTask
@@ -27,9 +28,28 @@ function startTask(entry: ScheduleEntry) {
     cronExpr,
     async () => {
       if (isWorkflowRunning) {
-        logger.warn(`Schedule "${entry.label}" triggered but pipeline already running. Skipped.`, "SCHEDULE-MGR");
+        logger.warn(`Schedule "${entry.label}" triggered but pipeline already running locally. Skipped.`, "SCHEDULE-MGR");
         return;
       }
+
+      // Supabase Distributed Lock Check: Ensure another server instance (e.g. HuggingFace / Local) didn't start a job recently
+      try {
+        const recentJobs = await RenderJobRepository.getRecentJobs(3);
+        const now = Date.now();
+        const activeRemoteJob = recentJobs.find(j => {
+          const jobTime = new Date(j.created_at || 0).getTime();
+          const ageMs = now - jobTime;
+          return ageMs < 15 * 60 * 1000; // started less than 15 mins ago
+        });
+        if (activeRemoteJob) {
+          const ageMin = ((now - new Date(activeRemoteJob.created_at || 0).getTime()) / 60000).toFixed(1);
+          logger.warn(`Schedule "${entry.label}" (${entry.time}) skipped: Another server instance (HuggingFace/Local) started a pipeline ${ageMin} mins ago.`, "SCHEDULE-MGR");
+          return;
+        }
+      } catch (err: any) {
+        logger.warn(`Distributed lock check error: ${err.message}. Proceeding...`, "SCHEDULE-MGR");
+      }
+
       isWorkflowRunning = true;
       logger.info(`SCHEDULE TRIGGER: "${entry.label}" — launching pipeline...`, "SCHEDULE-MGR");
       try {
@@ -59,6 +79,10 @@ function stopTask(id: string) {
 /** Called once on server startup — loads all enabled schedules from DB */
 export async function initScheduleManager() {
   logger.info("Initializing dynamic schedule manager...", "SCHEDULE-MGR");
+  if (!env.enableScheduler) {
+    logger.warn("ENABLE_SCHEDULER is set to false in .env. Automatic cron scheduler is DISABLED on this instance.", "SCHEDULE-MGR");
+    return;
+  }
   const entries = await ScheduleRepository.getAll();
   for (const entry of entries) {
     startTask(entry);
