@@ -27,32 +27,50 @@ const GRID_FALLBACK_IMAGES = [
 ];
 
 async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<string> {
-  const targetUrl = (url && url.trim() !== "" && url !== "NONE") ? url : (fallbackUrl || "");
-  if (!targetUrl) return "";
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per fetch
-    const res = await fetch(targetUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        "Referer": "https://thethao247.vn/"
-      },
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
-  } catch (err: any) {
-    logger.debug(`getImageAsDataUrl failed for ${targetUrl}: ${err.message}`, "RENDER-PNG");
-    if (fallbackUrl && fallbackUrl !== targetUrl) {
-      return getImageAsDataUrl(fallbackUrl);
+  const candidates: string[] = [];
+  
+  if (url && url.trim() !== "" && url !== "NONE") {
+    candidates.push(url);
+    // If it's a thethao247 URL without resize_, also add resize_180x115/ variant as candidate
+    if (url.includes("thethao247") && !url.includes("resize_")) {
+      try {
+        const u = new URL(url);
+        if (u.pathname.startsWith("/storage/")) {
+          u.pathname = `/resize_180x115${u.pathname}`;
+          candidates.push(u.toString());
+        }
+      } catch (_) {}
     }
-    return "";
   }
+
+  if (fallbackUrl && !candidates.includes(fallbackUrl)) {
+    candidates.push(fallbackUrl);
+  }
+
+  for (const targetUrl of candidates) {
+    if (!targetUrl || targetUrl.trim() === "" || targetUrl === "NONE") continue;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per fetch
+      const res = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "Referer": "https://thethao247.vn/"
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      return `data:${contentType};base64,${buffer.toString("base64")}`;
+    } catch (err: any) {
+      logger.warn(`[RENDER-PNG] getImageAsDataUrl candidate failed for ${targetUrl}: ${err.message}`, "RENDER-PNG");
+    }
+  }
+
+  return "";
 }
 
 /**

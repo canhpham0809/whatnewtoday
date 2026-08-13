@@ -68,16 +68,11 @@ export function upgradeImageUrl(url: string): string {
     // ── thethao247.vn / cdn-img.thethao247.vn ────────────────────────────────
     if (host.includes("thethao247")) {
       let p = u.pathname;
-      // Upgrade small thumbnail sizes (e.g. resize_180x115) to crisp HD resize_600x400 (~240KB)
-      // instead of fetching 2MB+ un-resized raw files that cause Playwright timeouts on server.
-      p = p.replace(/^\/resize_\d+x\d+\/\//i, "/resize_600x400//");
-      p = p.replace(/^\/resize_\d+\/\//i, "/resize_600x400//");
-      p = p.replace(/^\/resize_\d+x\d+\//i, "/resize_600x400/");
-      p = p.replace(/\/thumb\/\d+x\d+\//i, "/resize_600x400/");
-      p = p.replace(/\/\d+x\d+\//g, "/resize_600x400/");
-      if (!p.startsWith("/resize_") && p.startsWith("/storage/")) {
-        p = `/resize_600x400${p}`;
-      }
+      p = p.replace(/^\/resize_\d+x\d+\/\//i, "/");
+      p = p.replace(/^\/resize_\d+\/\//i, "/");
+      p = p.replace(/^\/resize_\d+x\d+\//i, "/");
+      p = p.replace(/\/thumb\/\d+x\d+\//i, "/");
+      p = p.replace(/\/\d+x\d+\//g, "/");
       p = p.replace(/[_-]\d+x\d+(\.[a-z0-9]+)$/i, "$1");
       u.pathname = p;
       ["w", "width", "h", "height", "size", "resize", "quality", "q"].forEach(k => u.searchParams.delete(k));
