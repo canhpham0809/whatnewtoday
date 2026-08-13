@@ -34,10 +34,10 @@ async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<str
   if (url && url.trim() !== "" && url !== "NONE") {
     candidates.push(url);
     
-    // For thethao247 URLs, add wsrv.nl image proxy candidate to bypass Cloudflare WAF 403 on HF datacenter IPs
+    // For thethao247 URLs, add clean weserv CDN proxy candidates to bypass Cloudflare WAF 403 on HF datacenter IPs
     if (url.includes("thethao247")) {
-      const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&h=400&fit=cover&output=jpg`;
-      candidates.push(proxyUrl);
+      candidates.push(`https://images.weserv.nl/?url=${encodeURIComponent(url)}`);
+      candidates.push(`https://wsrv.nl/?url=${encodeURIComponent(url)}`);
       
       if (!url.includes("resize_")) {
         try {
