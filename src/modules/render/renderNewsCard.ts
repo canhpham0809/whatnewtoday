@@ -19,11 +19,13 @@ const DEFAULT_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585829365295-
 
 const GRID_FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1495020689067-958852a6565c?q=80&w=600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?q=80&w=600&auto=format&fit=crop"
 ];
 
 async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<string> {
@@ -31,15 +33,21 @@ async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<str
   
   if (url && url.trim() !== "" && url !== "NONE") {
     candidates.push(url);
-    // If it's a thethao247 URL without resize_, also add resize_180x115/ variant as candidate
-    if (url.includes("thethao247") && !url.includes("resize_")) {
-      try {
-        const u = new URL(url);
-        if (u.pathname.startsWith("/storage/")) {
-          u.pathname = `/resize_180x115${u.pathname}`;
-          candidates.push(u.toString());
-        }
-      } catch (_) {}
+    
+    // For thethao247 URLs, add wsrv.nl image proxy candidate to bypass Cloudflare WAF 403 on HF datacenter IPs
+    if (url.includes("thethao247")) {
+      const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&h=400&fit=cover&output=jpg`;
+      candidates.push(proxyUrl);
+      
+      if (!url.includes("resize_")) {
+        try {
+          const u = new URL(url);
+          if (u.pathname.startsWith("/storage/")) {
+            u.pathname = `/resize_180x115${u.pathname}`;
+            candidates.push(u.toString());
+          }
+        } catch (_) {}
+      }
     }
   }
 
@@ -51,7 +59,7 @@ async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<str
     if (!targetUrl || targetUrl.trim() === "" || targetUrl === "NONE") continue;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per fetch
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout per fetch
       const res = await fetch(targetUrl, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
