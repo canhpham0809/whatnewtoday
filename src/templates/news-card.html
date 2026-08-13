@@ -1063,6 +1063,7 @@
 
         const img = document.getElementById('card-image');
         if (data.thumbnail && data.thumbnail.trim() !== '') {
+          img.removeAttribute('data-failed');
           img.src = data.thumbnail;
           imgContainer.style.display = 'block';
         } else {

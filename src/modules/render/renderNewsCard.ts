@@ -15,25 +15,64 @@ interface RenderOptions {
   coverCategory?: CoverCategory;
 }
 
-/**
- * Helper to fetch exactly 10 images for Cover & Outro collages.
- * Seamlessly falls back to premium stock journalism photos if thumbnails are missing.
- */
-function getGridImages(articlesList: NewsArticle[]): string[] {
-  const fallbacks = [
-    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1495020689067-958852a6565c?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop"
-  ];
-  
-  const urls = articlesList.map(a => a.thumbnail_url || "").filter(url => url.trim() !== "");
-  while (urls.length < 10) {
-    urls.push(fallbacks[urls.length % fallbacks.length]);
+const DEFAULT_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=800&auto=format&fit=crop";
+
+const GRID_FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1495020689067-958852a6565c?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop"
+];
+
+async function getImageAsDataUrl(url: string, fallbackUrl?: string): Promise<string> {
+  const targetUrl = (url && url.trim() !== "" && url !== "NONE") ? url : (fallbackUrl || "");
+  if (!targetUrl) return "";
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per fetch
+    const res = await fetch(targetUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "Referer": "https://thethao247.vn/"
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch (err: any) {
+    logger.debug(`getImageAsDataUrl failed for ${targetUrl}: ${err.message}`, "RENDER-PNG");
+    if (fallbackUrl && fallbackUrl !== targetUrl) {
+      return getImageAsDataUrl(fallbackUrl);
+    }
+    return "";
   }
-  return urls.slice(0, 10);
+}
+
+/**
+ * Helper to fetch exactly 10 images for Cover & Outro collages as base64 Data URLs.
+ * Seamlessly falls back to premium stock journalism photos if thumbnails fail.
+ */
+async function getGridImagesAsync(articlesList: NewsArticle[]): Promise<string[]> {
+  const rawUrls = articlesList.map(a => a.thumbnail_url || "").filter(url => url.trim() !== "" && url !== "NONE");
+  const urlsToFetch: string[] = [];
+  
+  for (let i = 0; i < 10; i++) {
+    const primary = rawUrls[i];
+    const fallback = GRID_FALLBACK_IMAGES[i % GRID_FALLBACK_IMAGES.length];
+    urlsToFetch.push(primary || fallback);
+  }
+
+  const dataUrlPromises = urlsToFetch.map((url, idx) =>
+    getImageAsDataUrl(url, GRID_FALLBACK_IMAGES[idx % GRID_FALLBACK_IMAGES.length])
+  );
+  return Promise.all(dataUrlPromises);
 }
 
 /**
@@ -97,8 +136,8 @@ export async function renderNewsArticlesToImages(
     const coverArt = options.coverArticle;
     const coverPath = path.join(outputDir, "cover.png");
     
-    // Grid images are the first 4 articles' thumbnails
-    const gridImages = getGridImages(articles);
+    // Grid images are pre-fetched as base64 Data URLs
+    const gridImages = await getGridImagesAsync(articles);
     
     const cardData = {
       title: coverArt.title,
@@ -118,21 +157,8 @@ export async function renderNewsArticlesToImages(
       (window as any).updateCardContent(data);
     }, cardData);
     
-    // Wait for all 10 grid images to fully load before screenshotting
-    if (gridImages.length > 0) {
-      try {
-        await page.waitForFunction(() => {
-          const imgs = Array.from({ length: 10 }, (_, k) =>
-            document.getElementById(`grid-img-${k + 1}`) as HTMLImageElement
-          );
-          return imgs.every(img => img && img.complete && (img.naturalWidth > 0 || img.getAttribute('data-failed') === 'true'));
-        }, undefined, { timeout: 10000 });
-      } catch (err) {
-        logger.warn("Some grid images failed to load within 10s for cover slide, proceeding anyway.", "RENDER-PNG");
-      }
-    } else {
-      await page.waitForTimeout(1000);
-    }
+    // Brief buffer for layout to settle (base64 images load instantly)
+    await page.waitForTimeout(300);
     
     await page.screenshot({
       path: coverPath,
@@ -158,7 +184,7 @@ export async function renderNewsArticlesToImages(
       sourceName = "Morning News";
       category = "TẠM BIỆT";
       // Outro grid images are the last 10 news articles
-      gridImages = getGridImages(articles.slice(0, -1).slice(-10));
+      gridImages = await getGridImagesAsync(articles.slice(0, -1).slice(-10));
     } else if (art.source_id && options.sources) {
       const matched = options.sources.find(s => s.id === art.source_id);
       if (matched) {
@@ -170,6 +196,12 @@ export async function renderNewsArticlesToImages(
       }
     }
     
+    // Pre-fetch article thumbnail as base64 Data URL to guarantee instant, 100% reliable rendering in Chromium
+    let thumbnailDataUrl = "";
+    if (art.id !== "outro-slide" && art.thumbnail_url && art.thumbnail_url.trim() !== "" && art.thumbnail_url !== "NONE") {
+      thumbnailDataUrl = await getImageAsDataUrl(art.thumbnail_url, DEFAULT_FALLBACK_IMAGE);
+    }
+    
     const cardData = {
       title: art.title,
       summary: art.summary || art.description || "",
@@ -178,7 +210,7 @@ export async function renderNewsArticlesToImages(
       date: formatVietnameseDate(art.pub_date),
       index: index,
       total: articles.length - 1, // Exclude outro slide count so indices display beautifully as X / 20
-      thumbnail: art.thumbnail_url || "",
+      thumbnail: thumbnailDataUrl,
       gridImages: gridImages
     };
     
@@ -190,20 +222,8 @@ export async function renderNewsArticlesToImages(
       (window as any).updateCardContent(data);
     }, cardData);
     
-    // Wait for the thumbnail image to fully load in the DOM if a thumbnail is provided!
-    if (art.thumbnail_url && art.thumbnail_url.trim() !== "") {
-      try {
-        await page.waitForFunction(() => {
-          const img = document.getElementById("card-image") as HTMLImageElement;
-          return img && img.complete && img.naturalWidth > 0;
-        }, undefined, { timeout: 6000 });
-      } catch (err) {
-        logger.warn(`Thumbnail failed to load within 6s for slide ${padIndex}: ${art.thumbnail_url}`, "RENDER-PNG");
-      }
-    }
-    
     // Brief timeout to let animations/renders settle
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
     
     // Screenshot at 1080x1920
     await page.screenshot({
