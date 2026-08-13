@@ -125,7 +125,7 @@ export async function renderNewsArticlesToImages(
           const imgs = Array.from({ length: 10 }, (_, k) =>
             document.getElementById(`grid-img-${k + 1}`) as HTMLImageElement
           );
-          return imgs.every(img => img && img.complete && img.naturalWidth > 0);
+          return imgs.every(img => img && img.complete && (img.naturalWidth > 0 || img.getAttribute('data-failed') === 'true'));
         }, undefined, { timeout: 10000 });
       } catch (err) {
         logger.warn("Some grid images failed to load within 10s for cover slide, proceeding anyway.", "RENDER-PNG");

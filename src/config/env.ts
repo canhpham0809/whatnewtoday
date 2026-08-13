@@ -92,7 +92,10 @@ export const env: Config = {
 
   get bufferAccessToken() { return getEnv("BUFFER_ACCESS_TOKEN"); },
   get bufferProfileId() { return getEnv("BUFFER_PROFILE_ID"); },
-  get isBufferMock() { return !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID")); },
+  get isBufferMock() {
+    const isSkipped = getEnv("SKIP_BUFFER", "false") === "true" || getEnv("DISABLE_BUFFER", "false") === "true";
+    return isSkipped || !isConfigured(getEnv("BUFFER_ACCESS_TOKEN")) || !isConfigured(getEnv("BUFFER_PROFILE_ID"));
+  },
   
   get enableScheduler() { return getEnv("ENABLE_SCHEDULER", "true").toLowerCase() !== "false"; },
   get cronTime() { return getEnv("CRON_TIME", "0 8 * * *"); },
