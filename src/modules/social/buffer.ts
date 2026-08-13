@@ -193,9 +193,11 @@ export async function postVideoToBuffer(caption: string, mediaUrls?: string | st
           }
         } catch (err: any) {
           lastError = err;
+          const isRateLimit = err.response?.status === 429 || err.message?.includes("429");
+          const retryDelay = isRateLimit ? attempt * 8000 : 3500;
           if (attempt < 3) {
-            logger.warn(`⚠️ Buffer request attempt ${attempt}/3 failed (${err.message}). Retrying in 3.5s...`, "BUFFER-PUB");
-            await new Promise(r => setTimeout(r, 3500));
+            logger.warn(`⚠️ Buffer request attempt ${attempt}/3 failed (${err.message}). ${isRateLimit ? 'Rate limit (429) detected. ' : ''}Retrying in ${retryDelay / 1000}s...`, "BUFFER-PUB");
+            await new Promise(r => setTimeout(r, retryDelay));
           }
         }
       }
