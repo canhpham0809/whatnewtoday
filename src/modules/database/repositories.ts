@@ -58,8 +58,9 @@ const mockRssSources: RssSource[] = [
   { id: "77777777-7777-7777-7777-777777777777", name: "Thanh Niên Giải Trí", url: "https://thanhnien.vn/rss/giai-tri.rss", category: "Entertainment", active: true },
   { id: "88888888-8888-8888-8888-888888888888", name: "24h Tin Trong Ngày", url: "https://www.24h.com.vn/upload/rss/tintuctrongngay.rss", category: "Featured", active: true },
   { id: "99999999-9999-9999-9999-999999999999", name: "24h Giải Trí", url: "https://www.24h.com.vn/upload/rss/giaitri.rss", category: "Entertainment", active: true },
-  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Thể Thao 247 Bóng Đá", url: "https://thethao247.vn/bong-da.rss", category: "Thể Thao", active: true },
   { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1", name: "VnExpress Thể Thao", url: "https://vnexpress.net/rss/the-thao.rss", category: "Thể Thao", active: true },
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2", name: "24h Thể Thao", url: "https://www.24h.com.vn/upload/rss/thethao.rss", category: "Thể Thao", active: true },
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3", name: "Tuổi Trẻ Thể Thao", url: "https://tuoitre.vn/rss/the-thao.rss", category: "Thể Thao", active: true },
   { id: "10000000-0000-0000-0000-000000000001", name: "VnExpress Kinh Doanh", url: "https://vnexpress.net/rss/kinh-doanh.rss", category: "Gold", active: true },
   { id: "20000000-0000-0000-0000-000000000002", name: "24h Giá Vàng", url: "https://www.24h.com.vn/upload/rss/taichinh.rss", category: "Gold", active: true }
 ];

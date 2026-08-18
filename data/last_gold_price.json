@@ -2,11 +2,13 @@
   {
     "store": "Vàng Thế Giới",
     "storeEn": "world",
-    "worldUSD": "$4,405.24",
-    "worldVND": "115,069,274",
+    "worldUSD": "$4396.5",
+    "worldVND": "114,840,977",
     "worldRateBuy": "26,121",
     "worldRateSell": "26,391",
-    "worldChange": "-14.37",
+    "worldVNDBuy": "114,840,977",
+    "worldVNDSell": "116,028,032",
+    "worldChange": "+0.60",
     "worldRateChangeBuy": "-",
     "worldRateChangeSell": "-"
   },
@@ -14,20 +16,20 @@
     "store": "Vàng SJC",
     "storeEn": "sjc",
     "nhaN": {
-      "buy": "14,150",
-      "sell": "14,460",
+      "buy": "141,300",
+      "sell": "144,300",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang998": {
-      "buy": "13,458",
-      "sell": "14,158",
+      "buy": "141,300",
+      "sell": "144,300",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang999": {
-      "buy": "14,200",
-      "sell": "14,500",
+      "buy": "141,300",
+      "sell": "144,300",
       "changeBuy": "-",
       "changeSell": "-"
     }
@@ -36,20 +38,20 @@
     "store": "Vàng PNJ",
     "storeEn": "pnj",
     "nhaN": {
-      "buy": "14,100",
-      "sell": "14,490",
+      "buy": "140,700",
+      "sell": "144,200",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang998": {
-      "buy": "13,876",
-      "sell": "14,376",
+      "buy": "140,700",
+      "sell": "144,200",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang999": {
-      "buy": "14,100",
-      "sell": "14,490",
+      "buy": "140,700",
+      "sell": "144,200",
       "changeBuy": "-",
       "changeSell": "-"
     }
@@ -58,20 +60,20 @@
     "store": "Bảo Tín Minh Châu",
     "storeEn": "btmc",
     "nhaN": {
-      "buy": "14,240",
-      "sell": "14,640",
+      "buy": "141,800",
+      "sell": "145,700",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang998": {
-      "buy": "14,020",
-      "sell": "14,520",
+      "buy": "141,800",
+      "sell": "145,700",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang999": {
-      "buy": "14,240",
-      "sell": "14,640",
+      "buy": "141,800",
+      "sell": "145,700",
       "changeBuy": "-",
       "changeSell": "-"
     }
@@ -80,20 +82,20 @@
     "store": "Vàng Mi Hồng",
     "storeEn": "mihong",
     "nhaN": {
-      "buy": "14,250",
-      "sell": "14,400",
+      "buy": "141,600",
+      "sell": "145,600",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang998": {
-      "buy": "12,950",
-      "sell": "13,150",
+      "buy": "141,600",
+      "sell": "145,600",
       "changeBuy": "-",
       "changeSell": "-"
     },
     "vang999": {
-      "buy": "14,250",
-      "sell": "14,400",
+      "buy": "141,600",
+      "sell": "145,600",
       "changeBuy": "-",
       "changeSell": "-"
     }

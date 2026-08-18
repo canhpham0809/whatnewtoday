@@ -218,6 +218,7 @@ export async function renderNewsArticlesToImages(
         if (lower.includes("vnexpress")) sourceName = "VnExpress";
         else if (lower.includes("tuổi trẻ") || lower.includes("tuoi tre")) sourceName = "Báo Tuổi Trẻ";
         else if (lower.includes("thanh niên") || lower.includes("thanh nien")) sourceName = "Báo Thanh Niên";
+        else if (lower.includes("24h")) sourceName = "Báo 24h";
         else sourceName = matched.name;
       }
     }
@@ -308,6 +309,9 @@ export async function renderGoldPriceSlides(
   const imagePaths: string[] = [];
   
   // Render Cover slide for Gold
+  const goldArticles = await fetchGoldNewsArticles(goldPrices.length);
+  const goldGridImages = await getGridImagesAsync(goldArticles);
+
   const coverData = {
     title: "Giá Vàng Hôm Nay",
     summary: "",
@@ -317,7 +321,7 @@ export async function renderGoldPriceSlides(
     index: 0,
     total: goldPrices.length,
     thumbnail: "",
-    gridImages: []
+    gridImages: goldGridImages
   };
   
   await page.evaluate((data) => { (window as any).updateCardContent(data); }, coverData);
@@ -326,9 +330,16 @@ export async function renderGoldPriceSlides(
   await page.screenshot({ path: coverPath, type: "png", fullPage: false });
   logger.success(`Saved gold cover slide cover.png`, "RENDER-PNG");
   
+  // Pre-fetch thumbnails as base64 Data URLs for all gold articles
+  const goldThumbDataUrls: string[] = [];
+  const GOLD_THUMB_FALLBACK = "https://images.unsplash.com/photo-1610375461246-83df859d849d?q=80&w=800&auto=format&fit=crop";
+  for (let i = 0; i < goldArticles.length; i++) {
+    const rawThumb = goldArticles[i]?.thumbnail_url || "";
+    const dataUrl = await getImageAsDataUrl(rawThumb, GOLD_THUMB_FALLBACK);
+    goldThumbDataUrls.push(dataUrl || GOLD_THUMB_FALLBACK);
+  }
+
   // Render one slide per store
-  const goldArticles = await fetchGoldNewsArticles(goldPrices.length);
-  
   for (let i = 0; i < goldPrices.length; i++) {
     const store = goldPrices[i];
     const padIndex = String(i + 1).padStart(2, "0");
@@ -351,12 +362,15 @@ export async function renderGoldPriceSlides(
       }
     }
     
-    // Assign a news article for the slide
-    const article = goldArticles[i % goldArticles.length] || null;
+    // Assign a news article for the slide with preloaded base64 thumbnail
+    const articleIdx = i % (goldArticles.length || 1);
+    const article = goldArticles[articleIdx] || null;
+    const thumbDataUrl = goldThumbDataUrls[articleIdx] || GOLD_THUMB_FALLBACK;
+
     const newsData = article ? {
       title: article.title,
       summary: article.description || article.summary,
-      thumbnail: article.thumbnail_url
+      thumbnail: thumbDataUrl
     } : null;
     
     const cardData = {
@@ -383,7 +397,7 @@ export async function renderGoldPriceSlides(
           return img && img.complete && img.naturalWidth > 0;
         }, undefined, { timeout: 6000 });
       } catch (err) {
-        logger.warn(`News thumbnail failed to load within 6s for gold slide ${padIndex}: ${newsData.thumbnail}`, "RENDER-PNG");
+        logger.warn(`News thumbnail failed to load within 6s for gold slide ${padIndex}`, "RENDER-PNG");
       }
     }
     
