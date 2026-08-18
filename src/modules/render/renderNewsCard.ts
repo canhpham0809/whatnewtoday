@@ -308,27 +308,7 @@ export async function renderGoldPriceSlides(
   
   const imagePaths: string[] = [];
   
-  // Render Cover slide for Gold
   const goldArticles = await fetchGoldNewsArticles(goldPrices.length);
-  const goldGridImages = await getGridImagesAsync(goldArticles);
-
-  const coverData = {
-    title: "Giá Vàng Hôm Nay",
-    summary: "",
-    category: "GIÁ VÀNG",
-    source: "WhatNew",
-    date: dateStr,
-    index: 0,
-    total: goldPrices.length,
-    thumbnail: "",
-    gridImages: goldGridImages
-  };
-  
-  await page.evaluate((data) => { (window as any).updateCardContent(data); }, coverData);
-  await page.waitForTimeout(1000);
-  const coverPath = path.join(outputDir, "cover.png");
-  await page.screenshot({ path: coverPath, type: "png", fullPage: false });
-  logger.success(`Saved gold cover slide cover.png`, "RENDER-PNG");
   
   // Pre-fetch thumbnails as base64 Data URLs for all gold articles
   const goldThumbDataUrls: string[] = [];

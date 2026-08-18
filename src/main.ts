@@ -339,7 +339,7 @@ export async function runWorkflow(): Promise<void> {
         logger.warn(`[GOLD] Social publish encounter warning: ${pubErr.message}. Slides safely saved on Drive.`, "WORKFLOW");
       }
 
-      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: 6, driveUrl: rootDriveFolder.webViewUrl });
+      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length, driveUrl: rootDriveFolder.webViewUrl });
       logger.success(`[GOLD] Done. Root Drive: ${rootDriveFolder.webViewUrl}`, "WORKFLOW");
     } catch (err: any) {
       logger.error("[GOLD] Gold price pipeline failed.", err, "WORKFLOW");
@@ -438,7 +438,7 @@ export async function runTopicWorkflow(topicKey: string): Promise<void> {
         logger.warn(`[GOLD] Social publish encounter warning: ${pubErr.message}`, "WORKFLOW");
       }
 
-      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length + 1, driveUrl: rootFolder.webViewUrl });
+      PipelineTracker.updateTopicProgress("gold", { status: "completed", percentage: 100, slideCount: goldPrices.length, driveUrl: rootFolder.webViewUrl });
       PipelineTracker.updateProgress({ status: "completed", step: "idle", stepName: "Hệ thống đang chờ", percentage: 100, message: `✅ Hoàn tất Giá Vàng sau ${((Date.now() - startTime) / 60000).toFixed(1)} phút!` });
       return;
     }
