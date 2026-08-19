@@ -353,12 +353,14 @@ export async function renderGoldPriceSlides(
       thumbnail: thumbDataUrl
     } : null;
     
+    const goldSource = store.storeEn === "world" ? "Binance / CoinGecko" : "Báo 24h (24h.com.vn)";
+
     const cardData = {
       title: store.store,
       summary: "",
       category: "GOLD_TABLE",
       storeName: store.store,
-      source: store.store,
+      source: goldSource,
       date: dateStr,
       index: i + 1,
       total: goldPrices.length,
